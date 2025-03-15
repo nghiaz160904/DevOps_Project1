@@ -130,7 +130,7 @@ pipeline {
         success {
             script {
                 withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
-                    if (env.CHANGE_ID) {
+                    if (env.CHANGE_TARGET) {
                         echo "PR detected. Skipping status update."
                     } else {
                         sh '''
@@ -147,7 +147,7 @@ pipeline {
         failure {
             script {
                 withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
-                    if (env.CHANGE_ID) {
+                    if (env.CHANGE_TARGET) {
                         echo "PR detected. CI failed, no status update."
                     } else {
                         sh '''
