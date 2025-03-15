@@ -32,6 +32,9 @@ class PetRepositoryTest {
         Owner owner = new Owner();
         owner.setFirstName("John");
         owner.setLastName("Doe");
+        owner.setCity("New York"); // Bổ sung
+        owner.setAddress("123 Main Street"); // Bổ sung
+        owner.setTelephone("1234567890"); // Bổ sung
         ownerRepository.save(owner);
 
         // Lưu Pet với PetType
