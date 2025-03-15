@@ -130,26 +130,34 @@ pipeline {
         success {
             script {
                 withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
-                  sh '''
-                    curl -X POST \
-                      -H "Authorization: token ${GITHUB_TOKEN}" \
-                      -H "Content-Type: application/json" \
-                      -d '{"state": "success", "context": "Jenkins CI", "description": "CI passed!"}' \
-                      "https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/${GIT_COMMIT}"
-                  '''
+                    if (env.CHANGE_ID) {
+                        echo "PR detected. Skipping status update."
+                    } else {
+                        sh '''
+                        curl -X POST \
+                          -H "Authorization: token ${GITHUB_TOKEN}" \
+                          -H "Content-Type: application/json" \
+                          -d '{"state": "success", "context": "Jenkins CI", "description": "CI passed!"}' \
+                          "https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/${GIT_COMMIT}"
+                        '''
+                    }
                 }
             }
         }
         failure {
             script {
                 withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
-                    sh '''
-                    curl -X POST \
-                      -H "Authorization: token ${GITHUB_TOKEN}" \
-                      -H "Content-Type: application/json" \
-                      -d '{"state": "failure", "context": "Jenkins CI", "description": "CI failed!"}' \
-                      "https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/${GIT_COMMIT}"
-                  '''
+                    if (env.CHANGE_ID) {
+                        echo "PR detected. CI failed, no status update."
+                    } else {
+                        sh '''
+                        curl -X POST \
+                          -H "Authorization: token ${GITHUB_TOKEN}" \
+                          -H "Content-Type: application/json" \
+                          -d '{"state": "failure", "context": "Jenkins CI", "description": "CI failed!"}' \
+                          "https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/${GIT_COMMIT}"
+                        '''
+                    }
                 }
             }
         }
