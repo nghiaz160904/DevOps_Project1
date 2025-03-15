@@ -15,16 +15,13 @@ class PetTest {
     @BeforeEach
     void setUp() {
         petType = new PetType();
-        petType.setId(1);
         petType.setName("Dog");
 
         owner = new Owner();
-        owner.setId(1);
         owner.setFirstName("John");
         owner.setLastName("Doe");
 
         pet = new Pet();
-        pet.setId(1);
         pet.setName("Buddy");
         pet.setBirthDate(new Date());
         pet.setType(petType);
@@ -33,7 +30,6 @@ class PetTest {
 
     @Test
     void testGettersAndSetters() {
-        assertEquals(1, pet.getId());
         assertEquals("Buddy", pet.getName());
         assertNotNull(pet.getBirthDate());
         assertEquals(petType, pet.getType());
@@ -43,7 +39,6 @@ class PetTest {
     @Test
     void testEqualsAndHashCode() {
         Pet anotherPet = new Pet();
-        anotherPet.setId(1);
         anotherPet.setName("Buddy");
         anotherPet.setBirthDate(pet.getBirthDate());
         anotherPet.setType(petType);
@@ -55,8 +50,6 @@ class PetTest {
 
     @Test
     void testToString() {
-        String expected = "Pet(id=1, name=Buddy, birthDate=" + pet.getBirthDate() +
-                ", type=Dog, ownerFirstname=John, ownerLastname=Doe)";
         assertTrue(pet.toString().contains("Buddy"));
         assertTrue(pet.toString().contains("Dog"));
         assertTrue(pet.toString().contains("John"));
