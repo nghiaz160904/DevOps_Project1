@@ -22,32 +22,33 @@ class PetRepositoryTest {
     private OwnerRepository ownerRepository;
 
     @Test
-    void testSaveAndFindById() {
-        // Tạo PetType (không cần PetTypeRepository)
-        PetType petType = new PetType();
-        petType.setId(1);  // Đặt ID tạm thời
-        petType.setName("Dog");
+        void testSaveAndFindById() {
+            // Lưu PetType trước
+            PetType petType = new PetType();
+            petType.setName("Dog");
+            petType = entityManager.persistFlushFind(petType); // Lưu và lấy lại từ DB
+        
+            // Lưu Owner trước
+            Owner owner = new Owner();
+            owner.setFirstName("John");
+            owner.setLastName("Doe");
+            owner.setCity("New York"); // Bổ sung
+            owner.setAddress("123 Main Street"); // Bổ sung
+            owner.setTelephone("1234567890"); // Bổ sung
+            owner = ownerRepository.save(owner); // Lưu vào DB
+        
+            // Lưu Pet với PetType đã lưu
+            Pet pet = new Pet();
+            pet.setName("Buddy");
+            pet.setBirthDate(new Date());
+            pet.setType(petType);  // Gán PetType đã được lưu
+            pet.setOwner(owner);
+            pet = petRepository.save(pet);
+        
+            // Kiểm tra
+            Optional<Pet> foundPet = petRepository.findById(pet.getId());
+            assertTrue(foundPet.isPresent());
+            assertEquals("Buddy", foundPet.get().getName());
+        }
 
-        // Lưu Owner
-        Owner owner = new Owner();
-        owner.setFirstName("John");
-        owner.setLastName("Doe");
-        owner.setCity("New York"); // Bổ sung
-        owner.setAddress("123 Main Street"); // Bổ sung
-        owner.setTelephone("1234567890"); // Bổ sung
-        ownerRepository.save(owner);
-
-        // Lưu Pet với PetType
-        Pet pet = new Pet();
-        pet.setName("Buddy");
-        pet.setBirthDate(new Date());
-        pet.setType(petType);  // Sử dụng PetType không cần repo riêng
-        pet.setOwner(owner);
-        petRepository.save(pet);
-
-        // Kiểm tra
-        Optional<Pet> foundPet = petRepository.findById(pet.getId());
-        assertTrue(foundPet.isPresent());
-        assertEquals("Buddy", foundPet.get().getName());
-    }
 }
