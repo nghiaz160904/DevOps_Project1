@@ -15,8 +15,7 @@ pipeline {
                     env.NO_SERVICES_TO_BUILD = 'false'
                     if (env.CHANGE_TARGET) {
                         // Nếu đây là PR build
-                        echo "Pull request detected. Skipping CI execution. Only checking status."
-                        return
+                        changedFiles = sh(script: "git diff --name-only origin/${env.CHANGE_TARGET}...", returnStdout: true).trim().split('\n')
                     } else {
                         // Nếu đây là branch build
                         changedFiles = sh(script: "git diff --name-only HEAD^", returnStdout: true).trim().split('\n')
@@ -53,7 +52,7 @@ pipeline {
         
         stage('Test & Coverage') {
             when {
-                expression { env.NO_SERVICES_TO_BUILD == 'false' && !env.CHANGE_ID}
+                expression { env.NO_SERVICES_TO_BUILD == 'false'}
             }
             steps {
                 script {
@@ -82,7 +81,7 @@ pipeline {
 
         stage('Check Coverage') {
             when {
-                expression { env.NO_SERVICES_TO_BUILD == 'false' && !env.CHANGE_ID}
+                expression { env.NO_SERVICES_TO_BUILD == 'false'}
             }
             steps {
                 script {
@@ -112,7 +111,7 @@ pipeline {
 
         stage('Build') {
             when {
-                expression { env.NO_SERVICES_TO_BUILD == 'false' && !env.CHANGE_ID}
+                expression { env.NO_SERVICES_TO_BUILD == 'false'}
             }
             steps {
                 script {
@@ -130,36 +129,26 @@ pipeline {
         success {
             script {
                 withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
-                    if (env.CHANGE_TARGET) {
-                        echo "PR detected. Skipping status update."
-                        return
-                    } else {
-                        sh '''
-                        curl -X POST \
-                          -H "Authorization: token ${GITHUB_TOKEN}" \
-                          -H "Content-Type: application/json" \
-                          -d '{"state": "success", "context": "Jenkins CI", "description": "CI passed!"}' \
-                          "https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/${GIT_COMMIT}"
-                        '''
-                    }
+                    sh '''
+                    curl -X POST \
+                      -H "Authorization: token ${GITHUB_TOKEN}" \
+                      -H "Content-Type: application/json" \
+                      -d '{"state": "success", "context": "Jenkins CI", "description": "CI passed!"}' \
+                      "https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/${GIT_COMMIT}"
+                    '''
                 }
             }
         }
         failure {
             script {
                 withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
-                    if (env.CHANGE_TARGET) {
-                        echo "PR detected. CI failed, no status update."
-                        return
-                    } else {
-                        sh '''
-                        curl -X POST \
-                          -H "Authorization: token ${GITHUB_TOKEN}" \
-                          -H "Content-Type: application/json" \
-                          -d '{"state": "failure", "context": "Jenkins CI", "description": "CI failed!"}' \
-                          "https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/${GIT_COMMIT}"
-                        '''
-                    }
+                    sh '''
+                    curl -X POST \
+                      -H "Authorization: token ${GITHUB_TOKEN}" \
+                      -H "Content-Type: application/json" \
+                      -d '{"state": "failure", "context": "Jenkins CI", "description": "CI failed!"}' \
+                      "https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/${GIT_COMMIT}"
+                    '''
                 }
             }
         }
