@@ -35,12 +35,13 @@ class OwnerRequestTest {
     
         Set<ConstraintViolation<OwnerRequest>> violations = validator.validate(owner);
     
-        // Lọc lỗi của telephone nếu có cả @NotBlank và @Digits gây lỗi trùng
-        long telephoneErrors = violations.stream()
-            .filter(v -> v.getPropertyPath().toString().equals("telephone"))
+        // Đếm số lượng field khác nhau bị lỗi
+        long distinctFieldErrors = violations.stream()
+            .map(v -> v.getPropertyPath().toString()) // Lấy tên field
+            .distinct()
             .count();
     
-        assertEquals(5 - (telephoneErrors > 1 ? 1 : 0), violations.size(), "Should have 5 validation errors (all fields blank)");
+        assertEquals(5, distinctFieldErrors, "Should have exactly 5 distinct validation errors");
     }
 
     @Test
