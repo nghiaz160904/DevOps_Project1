@@ -132,6 +132,7 @@ pipeline {
                 withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
                     if (env.CHANGE_TARGET) {
                         echo "PR detected. Skipping status update."
+                        return
                     } else {
                         sh '''
                         curl -X POST \
@@ -149,6 +150,7 @@ pipeline {
                 withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
                     if (env.CHANGE_TARGET) {
                         echo "PR detected. CI failed, no status update."
+                        return
                     } else {
                         sh '''
                         curl -X POST \
