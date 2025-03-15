@@ -6,6 +6,15 @@ pipeline {
     }
     
     stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    checkout scm
+                    env.GIT_COMMIT = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+                    echo "GIT_COMMIT=${env.GIT_COMMIT}"
+                }
+            }
+        }
         stage('Check Changes') {
             steps {
                 script {
@@ -131,7 +140,7 @@ pipeline {
                     sh """
                     curl -X POST -H "Authorization: token ${GITHUB_TOKEN}" \
                         -d '{"state": "success", "context": "Jenkins CI", "description": "CI passed!"}' \
-                        https://api.github.com/repos/nghiaz160904/DevOps_Project1.git/statuses/\${GIT_COMMIT}
+                        https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/\${env.GIT_COMMIT}
                     """
                 }
             }
@@ -142,7 +151,7 @@ pipeline {
                     sh """
                     curl -X POST -H "Authorization: token ${GITHUB_TOKEN}" \
                         -d '{"state": "failure", "context": "Jenkins CI", "description": "CI failed!"}' \
-                        https://api.github.com/repos/nghiaz160904/DevOps_Project1.git/statuses/\${GIT_COMMIT}
+                        https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/\${env.GIT_COMMIT}
                     """
                 }
             }
