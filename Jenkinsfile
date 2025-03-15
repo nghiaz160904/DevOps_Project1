@@ -3,21 +3,14 @@ pipeline {
     
     environment {
         OTHER = '' // Danh sách các service thay đổi
+        GIT_COMMIT = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
     }
     
     stages {
-        stage('Checkout') {
-            steps {
-                script {
-                    checkout scm
-                    env.GIT_COMMIT = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
-                    echo "GIT_COMMIT=${env.GIT_COMMIT}"
-                }
-            }
-        }
         stage('Check Changes') {
             steps {
                 script {
+                    echo "Commit SHA: ${GIT_COMMIT}"
                     def changedFiles = []
                     env.NO_SERVICES_TO_BUILD = 'false'
                     if (env.CHANGE_TARGET) {
@@ -137,22 +130,26 @@ pipeline {
         success {
             script {
                 withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
-                    sh """
-                    curl -X POST -H "Authorization: token ${GITHUB_TOKEN}" \
-                        -d '{"state": "success", "context": "Jenkins CI", "description": "CI passed!"}' \
-                        https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/\${env.GIT_COMMIT}
-                    """
+                  sh '''
+                    curl -X POST \
+                      -H "Authorization: token ${GITHUB_TOKEN}" \
+                      -H "Content-Type: application/json" \
+                      -d '{"state": "success", "context": "Jenkins CI", "description": "CI passed!"}' \
+                      "https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/${GIT_COMMIT}"
+                  '''
                 }
             }
         }
         failure {
             script {
                 withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
-                    sh """
-                    curl -X POST -H "Authorization: token ${GITHUB_TOKEN}" \
-                        -d '{"state": "failure", "context": "Jenkins CI", "description": "CI failed!"}' \
-                        https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/\${env.GIT_COMMIT}
-                    """
+                    sh '''
+                    curl -X POST \
+                      -H "Authorization: token ${GITHUB_TOKEN}" \
+                      -H "Content-Type: application/json" \
+                      -d '{"state": "failure", "context": "Jenkins CI", "description": "CI failed!"}' \
+                      "https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/${GIT_COMMIT}"
+                  '''
                 }
             }
         }
