@@ -67,7 +67,6 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
-            <version>1.10.0</version>
         </dependency>
         <dependency>
             <groupId>de.codecentric</groupId>
@@ -80,17 +79,15 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-core</artifactId>
-            <version>1.10.0</version> <!-- Hoặc phiên bản mới nhất -->
+            <version>1.14.5</version>
         </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-observation</artifactId>
-            <version>1.10.0</version>
         </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-tracing-bridge-brave</artifactId>
-            <version>1.10.0</version>
         </dependency>
         <dependency>
             <groupId>io.zipkin.reporter2</groupId>
