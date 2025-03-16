@@ -4,6 +4,7 @@ pipeline {
     environment {
         GIT_COMMIT = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
         OTHER = ''
+    }
     stages {
         stage('Check Changes') {
             agent { label 'master' } // Chạy trên Master
