@@ -13,7 +13,7 @@ pipeline {
                 script {
                     echo "Commit SHA: ${GIT_COMMIT}"
                     def changedFiles = []
-                    
+                    env.NO_SERVICES_TO_BUILD = 'false'
                     if (env.CHANGE_TARGET) {
                         // Nếu đây là Pull Request (PR) build
                         changedFiles = sh(script: "git diff --name-only HEAD^", returnStdout: true).trim().split('\n').toList()
