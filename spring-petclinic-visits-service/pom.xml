@@ -142,13 +142,6 @@
                         <goals>
                             <goal>build-info</goal>
                         </goals>
-                        <configuration>
-                            <additionalProperties>
-                                <name>${project.name}</name>
-                                <group>${project.groupId}</group>
-                                <version>${project.version}</version>
-                            </additionalProperties>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
