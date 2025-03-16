@@ -16,10 +16,10 @@ pipeline {
                     
                     if (env.CHANGE_TARGET) {
                         // Nếu đây là Pull Request (PR) build
-                        changedFiles = sh(script: "git diff --name-only origin/${env.CHANGE_TARGET}...", returnStdout: true).trim().split('\n')
+                        changedFiles = sh(script: "git diff --name-only HEAD^", returnStdout: true).trim().split('\n').toList()
                     } else {
                         // Nếu đây là branch build
-                        changedFiles = sh(script: "git diff --name-only HEAD^", returnStdout: true).trim().split('\n')
+                        changedFiles = sh(script: "git diff --name-only HEAD^", returnStdout: true).trim().split('\n').toList()
                     }
 
                     def services = ['spring-petclinic-customers-service', 'spring-petclinic-visits-service', 'spring-petclinic-vets-service']
