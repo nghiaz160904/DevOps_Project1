@@ -127,30 +127,32 @@ pipeline {
     
     post {
         success {
-            script {
-                // withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
-                //     sh '''
-                //     curl -X POST \
-                //       -H "Authorization: token ${GITHUB_TOKEN}" \
-                //       -H "Content-Type: application/json" \
-                //       -d '{"state": "success", "context": "Jenkins CI", "description": "CI passed!"}' \
-                //       "https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/${GIT_COMMIT}"
-                //     '''
-                // }
-            }
+            // script {
+            //     // withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
+            //     //     sh '''
+            //     //     curl -X POST \
+            //     //       -H "Authorization: token ${GITHUB_TOKEN}" \
+            //     //       -H "Content-Type: application/json" \
+            //     //       -d '{"state": "success", "context": "Jenkins CI", "description": "CI passed!"}' \
+            //     //       "https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/${GIT_COMMIT}"
+            //     //     '''
+            //     // }
+            // }
+            echo "Success"
         }
         failure {
-            script {
-                // withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
-                //     sh '''
-                //     curl -X POST \
-                //       -H "Authorization: token ${GITHUB_TOKEN}" \
-                //       -H "Content-Type: application/json" \
-                //       -d '{"state": "failure", "context": "Jenkins CI", "description": "CI failed!"}' \
-                //       "https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/${GIT_COMMIT}"
-                //     '''
-                // }
-            }
+            // script {
+            //     withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
+            //         sh '''
+            //         curl -X POST \
+            //           -H "Authorization: token ${GITHUB_TOKEN}" \
+            //           -H "Content-Type: application/json" \
+            //           -d '{"state": "failure", "context": "Jenkins CI", "description": "CI failed!"}' \
+            //           "https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/${GIT_COMMIT}"
+            //         '''
+            //     }
+            // }
+            echo "Fail"
         }
     }
 }
