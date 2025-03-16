@@ -3,10 +3,7 @@ pipeline {
 
     environment {
         GIT_COMMIT = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
-        NO_SERVICES_TO_BUILD = 'false'
-        SERVICE_CHANGED = ''
-    }
-
+        OTHER = ''
     stages {
         stage('Check Changes') {
             agent { label 'master' } // Chạy trên Master
