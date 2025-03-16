@@ -2,7 +2,7 @@ pipeline {
     agent none  // Không chạy trên Master, chỉ điều phối
 
     environment {
-        GIT_COMMIT = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+        // GIT_COMMIT = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
         OTHER = ''
     }
     stages {
