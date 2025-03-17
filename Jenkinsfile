@@ -48,7 +48,7 @@ pipeline {
         }
 
         stage('Test & Coverage - Agent 1') {
-            agent { label 'agent-1' }  
+            agent { label 'agent1' }  
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' && (env.SERVICE_CHANGED.contains('customers-service') || env.SERVICE_CHANGED.contains('visits-service')) }
             }
@@ -75,7 +75,7 @@ pipeline {
         }
 
         stage('Test & Coverage - Agent 2') {
-            agent { label 'agent-2' }  
+            agent { label 'agent2' }  
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' && (env.SERVICE_CHANGED.contains('vets-service') || env.SERVICE_CHANGED.contains('genai-service')) }
             }
@@ -125,7 +125,7 @@ pipeline {
         }
 
         stage('Build - Agent 1') {
-            agent { label 'agent-1' }
+            agent { label 'agent1' }
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' && (env.SERVICE_CHANGED.contains('customers-service') || env.SERVICE_CHANGED.contains('visits-service')) }
             }
@@ -141,7 +141,7 @@ pipeline {
         }
 
         stage('Build - Agent 2') {
-            agent { label 'agent-2' }
+            agent { label 'agent2' }
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' && (env.SERVICE_CHANGED.contains('vets-service') || env.SERVICE_CHANGED.contains('genai-service')) }
             }
