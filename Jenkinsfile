@@ -19,7 +19,7 @@ pipeline {
                         changedFiles = sh(script: "git diff --name-only HEAD^", returnStdout: true).trim().split('\n').toList()
                     }
 
-                    def services = ['spring-petclinic-customers-service', 'spring-petclinic-visits-service', 'spring-petclinic-vets-service', 'spring-petclinic-genai-service']
+                    def services = ['spring-petclinic-customers-service', 'spring-petclinic-visits-service', 'spring-petclinic-vets-service']
 
                     echo "Changed files: ${changedFiles}"
 
@@ -48,7 +48,7 @@ pipeline {
         }
 
         stage('Test & Coverage - Agent 1') {
-            agent { label 'agent1' }  
+            agent { label 'agent-1' }  
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' && (env.SERVICE_CHANGED.contains('customers-service') || env.SERVICE_CHANGED.contains('visits-service')) }
             }
@@ -75,28 +75,20 @@ pipeline {
         }
 
         stage('Test & Coverage - Agent 2') {
-            agent { label 'agent2' }  
+            agent { label 'agent-2' }  
             when {
-                expression { env.NO_SERVICES_TO_BUILD == 'false' && (env.SERVICE_CHANGED.contains('vets-service') || env.SERVICE_CHANGED.contains('genai-service')) }
+                expression { env.NO_SERVICES_TO_BUILD == 'false' && env.SERVICE_CHANGED.contains('vets-service') }
             }
             steps {
                 script {
-                    def services = env.SERVICE_CHANGED.split(',').findAll { it in ['spring-petclinic-vets-service', 'spring-petclinic-genai-service'] }
-                    for (service in services) {
-                        echo "Running unit tests for service: ${service} on Agent 2"
-                        sh "./mvnw clean verify -pl ${service} -am"
-                    }
+                    echo "Running unit tests for vets-service on Agent 2"
+                    sh "./mvnw clean verify -pl spring-petclinic-vets-service -am"
                 }
             }
             post {
                 always {
-                    script {
-                        def services = env.SERVICE_CHANGED.split(',')
-                        for (service in services) {
-                            junit "${service}/target/surefire-reports/*.xml"
-                            archiveArtifacts artifacts: "${service}/target/site/jacoco/*", fingerprint: true
-                        }
-                    }
+                    junit "spring-petclinic-vets-service/target/surefire-reports/*.xml"
+                    archiveArtifacts artifacts: "spring-petclinic-vets-service/target/site/jacoco/*", fingerprint: true
                 }
             }
         }
@@ -133,7 +125,7 @@ pipeline {
         }
 
         stage('Build - Agent 1') {
-            agent { label 'agent1' }
+            agent { label 'agent-1' }
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' && (env.SERVICE_CHANGED.contains('customers-service') || env.SERVICE_CHANGED.contains('visits-service')) }
             }
@@ -149,17 +141,14 @@ pipeline {
         }
 
         stage('Build - Agent 2') {
-            agent { label 'agent2' }
+            agent { label 'agent-2' }
             when {
-                expression { env.NO_SERVICES_TO_BUILD == 'false' && (env.SERVICE_CHANGED.contains('vets-service') || env.SERVICE_CHANGED.contains('genai-service')) }
+                expression { env.NO_SERVICES_TO_BUILD == 'false' && env.SERVICE_CHANGED.contains('vets-service') }
             }
             steps {
                 script {
-                    def services = env.SERVICE_CHANGED.split(',').findAll { it in ['spring-petclinic-vets-service', 'spring-petclinic-genai-service'] }
-                    for (service in services) {
-                        echo "Building service: ${service} on Agent 1"
-                        sh "./mvnw package -pl ${service} -am -DskipTests"
-                    }
+                    echo "Building vets-service on Agent 2"
+                    sh "./mvnw package -pl spring-petclinic-vets-service -am -DskipTests"
                 }
             }
         }
