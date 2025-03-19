@@ -18,6 +18,7 @@
         <docker.image.exposed.port>8081</docker.image.exposed.port>
         <docker.image.dockerfile.dir>${basedir}/../docker</docker.image.dockerfile.dir>
     </properties>
+    
 
 	<dependencies>
         <!-- Spring Boot -->
