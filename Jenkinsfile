@@ -2,8 +2,6 @@ pipeline {
     agent none  // Không chạy trên Master, chỉ điều phối
 
     environment {
-        // GIT_COMMIT = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
-        
         OTHER = ''
     }
     stages {
@@ -15,10 +13,8 @@ pipeline {
                     def changedFiles = []
                     env.NO_SERVICES_TO_BUILD = 'false'
                     if (env.CHANGE_TARGET) {
-                        // Nếu đây là Pull Request (PR) build
                         changedFiles = sh(script: "git diff --name-only HEAD^", returnStdout: true).trim().split('\n').toList()
                     } else {
-                        // Nếu đây là branch build
                         changedFiles = sh(script: "git diff --name-only HEAD^", returnStdout: true).trim().split('\n').toList()
                     }
 
@@ -61,6 +57,7 @@ pipeline {
                     for (service in services) {
                         echo "Running unit tests for service: ${service} on Agent 1"
                         sh "./mvnw clean verify -pl ${service} -am"
+                        stash name: "${service}-coverage", includes: "${service}/target/site/jacoco/**"
                     }
                 }
             }
@@ -70,7 +67,6 @@ pipeline {
                         def services = env.SERVICE_CHANGED.split(',')
                         for (service in services) {
                             junit "${service}/target/surefire-reports/*.xml"
-                            archiveArtifacts artifacts: "${service}/target/site/jacoco/*", fingerprint: true
                         }
                     }
                 }
@@ -86,15 +82,16 @@ pipeline {
                 script {
                     echo "Running unit tests for vets-service on Agent 2"
                     sh "./mvnw clean verify -pl spring-petclinic-vets-service -am"
+                    stash name: "spring-petclinic-vets-service-coverage", includes: "spring-petclinic-vets-service/target/site/jacoco/**"
                 }
             }
             post {
                 always {
                     junit "spring-petclinic-vets-service/target/surefire-reports/*.xml"
-                    archiveArtifacts artifacts: "spring-petclinic-vets-service/target/site/jacoco/*", fingerprint: true
                 }
             }
         }
+
         stage('Check Coverage') {
             agent { label 'master' }
             when {
@@ -104,6 +101,11 @@ pipeline {
                 script {
                     def services = env.SERVICE_CHANGED.split(',')
                     def failedCoverageServices = []
+
+                    // unstash artifacts từ các agents khác
+                    for (service in services) {
+                        unstash "${service}-coverage"
+                    }
 
                     for (service in services) {
                         def coverageHtml = sh(
@@ -159,31 +161,9 @@ pipeline {
     
     post {
         success {
-            // script {
-            //     // withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
-            //     //     sh '''
-            //     //     curl -X POST \
-            //     //       -H "Authorization: token ${GITHUB_TOKEN}" \
-            //     //       -H "Content-Type: application/json" \
-            //     //       -d '{"state": "success", "context": "Jenkins CI", "description": "CI passed!"}' \
-            //     //       "https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/${GIT_COMMIT}"
-            //     //     '''
-            //     // }
-            // }
             echo "Success"
         }
         failure {
-            // script {
-            //     withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
-            //         sh '''
-            //         curl -X POST \
-            //           -H "Authorization: token ${GITHUB_TOKEN}" \
-            //           -H "Content-Type: application/json" \
-            //           -d '{"state": "failure", "context": "Jenkins CI", "description": "CI failed!"}' \
-            //           "https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/${GIT_COMMIT}"
-            //         '''
-            //     }
-            // }
             echo "Fail"
         }
     }
