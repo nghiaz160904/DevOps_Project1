@@ -46,6 +46,7 @@ class VetResourceTest {
 
     @MockBean
     VetRepository vetRepository;
+    
 
     @Test
     void shouldGetAListOfVets() throws Exception {
