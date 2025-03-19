@@ -96,7 +96,7 @@ pipeline {
             }
         }
         stage('Check Coverage') {
-            agent { label 'built-in' }
+            agent { label 'master' }
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' }
             }
