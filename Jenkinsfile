@@ -1,29 +1,27 @@
 pipeline {
-    agent none  // Không chạy trên Master, chỉ điều phối
+
+    agent none
 
     environment {
-        // GIT_COMMIT = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
-        
         OTHER = ''
     }
+
     stages {
         stage('Check Changes') {
-            agent { label 'master' } // Chạy trên Master
+            agent { label 'built-in' }
             steps {
                 script {
                     echo "Commit SHA: ${GIT_COMMIT}"
                     def changedFiles = []
                     env.NO_SERVICES_TO_BUILD = 'false'
                     if (env.CHANGE_TARGET) {
-                        // Nếu đây là Pull Request (PR) build
                         changedFiles = sh(script: "git diff --name-only HEAD^", returnStdout: true).trim().split('\n').toList()
                     } else {
-                        // Nếu đây là branch build
                         changedFiles = sh(script: "git diff --name-only HEAD^", returnStdout: true).trim().split('\n').toList()
                     }
 
                     def services = ['spring-petclinic-customers-service', 'spring-petclinic-visits-service', 'spring-petclinic-vets-service']
-                    
+
                     echo "Changed files: ${changedFiles}"
 
                     if (changedFiles.isEmpty() || changedFiles[0] == '') {
@@ -51,7 +49,7 @@ pipeline {
         }
 
         stage('Test & Coverage - Agent 1') {
-            agent { label 'agent1' }  
+            agent { label 'agent-1' }  
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' && (env.SERVICE_CHANGED.contains('customers-service') || env.SERVICE_CHANGED.contains('visits-service')) }
             }
@@ -78,7 +76,7 @@ pipeline {
         }
 
         stage('Test & Coverage - Agent 2') {
-            agent { label 'agent2' }  
+            agent { label 'agent-2' }  
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' && env.SERVICE_CHANGED.contains('vets-service') }
             }
@@ -96,8 +94,39 @@ pipeline {
             }
         }
 
+        stage('Check Coverage') {
+            agent { label 'built-in' }
+            when {
+                expression { env.NO_SERVICES_TO_BUILD == 'false' }
+            }
+            steps {
+                script {
+                    def services = env.SERVICE_CHANGED.split(',')
+                    def failedCoverageServices = []
+
+                    for (service in services) {
+                        def coverageHtml = sh(
+                            script: "xmllint --html --xpath 'string(//table[@id=\"coveragetable\"]/tfoot/tr/td[3])' ${service}/target/site/jacoco/index.html 2>/dev/null",
+                            returnStdout: true
+                        ).trim()
+
+                        def coverage = coverageHtml.replace('%', '').toFloat() / 100
+                        echo "Test Coverage for ${service}: ${coverage * 100}%"
+
+                        if (coverage < 0.70) {
+                            failedCoverageServices << service
+                        }
+                    }
+
+                    if (failedCoverageServices.size() > 0) {
+                        error "Coverage below 70% for services: ${failedCoverageServices.join(', ')}! Pipeline failed."
+                    }
+                }
+            }
+        }
+
         stage('Build - Agent 1') {
-            agent { label 'agent1' }
+            agent { label 'agent-1' }
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' && (env.SERVICE_CHANGED.contains('customers-service') || env.SERVICE_CHANGED.contains('visits-service')) }
             }
@@ -113,7 +142,7 @@ pipeline {
         }
 
         stage('Build - Agent 2') {
-            agent { label 'agent2' }
+            agent { label 'agent-2' }
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' && env.SERVICE_CHANGED.contains('vets-service') }
             }
@@ -125,35 +154,13 @@ pipeline {
             }
         }
     }
-    
+
     post {
         success {
-            // script {
-            //     // withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
-            //     //     sh '''
-            //     //     curl -X POST \
-            //     //       -H "Authorization: token ${GITHUB_TOKEN}" \
-            //     //       -H "Content-Type: application/json" \
-            //     //       -d '{"state": "success", "context": "Jenkins CI", "description": "CI passed!"}' \
-            //     //       "https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/${GIT_COMMIT}"
-            //     //     '''
-            //     // }
-            // }
-            echo "Success"
+            echo "Pipeline completed successfully!"
         }
         failure {
-            // script {
-            //     withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
-            //         sh '''
-            //         curl -X POST \
-            //           -H "Authorization: token ${GITHUB_TOKEN}" \
-            //           -H "Content-Type: application/json" \
-            //           -d '{"state": "failure", "context": "Jenkins CI", "description": "CI failed!"}' \
-            //           "https://api.github.com/repos/nghiaz160904/DevOps_Project1/statuses/${GIT_COMMIT}"
-            //         '''
-            //     }
-            // }
-            echo "Fail"
+            echo "Pipeline failed!"
         }
     }
 }
