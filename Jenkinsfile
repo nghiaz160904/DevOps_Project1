@@ -111,6 +111,36 @@ pipeline {
                 }
             }
         }
+        stage('Check Coverage') {
+            agent { label 'built-in' }
+            when {
+                expression { env.NO_SERVICES_TO_BUILD == 'false' }
+            }
+            steps {
+                script {
+                    def services = env.SERVICE_CHANGED.split(',')
+                    def failedCoverageServices = []
+
+                    for (service in services) {
+                        def coverageHtml = sh(
+                            script: "xmllint --html --xpath 'string(//table[@id=\"coveragetable\"]/tfoot/tr/td[3])' ${service}/target/site/jacoco/index.html 2>/dev/null",
+                            returnStdout: true
+                        ).trim()
+
+                        def coverage = coverageHtml.replace('%', '').toFloat() / 100
+                        echo "Test Coverage for ${service}: ${coverage * 100}%"
+
+                        if (coverage < 0.70) {
+                            failedCoverageServices << service
+                        }
+                    }
+
+                    if (failedCoverageServices.size() > 0) {
+                        error "Coverage below 70% for services: ${failedCoverageServices.join(', ')}! Pipeline failed."
+                    }
+                }
+            }
+        }
 
         stage('Build - Agent 2') {
             agent { label 'agent2' }
