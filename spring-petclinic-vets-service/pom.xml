@@ -19,7 +19,6 @@
         <docker.image.dockerfile.dir>${basedir}/../docker</docker.image.dockerfile.dir>
     </properties>
     
-
 	<dependencies>
         <!-- Spring Boot -->
 		<dependency>
