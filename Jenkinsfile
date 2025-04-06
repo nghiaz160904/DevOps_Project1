@@ -134,7 +134,7 @@ pipeline {
         stage('Build and Push Image') {
             agent { label 'built-in' } // Agent có cài đặt Docker
             when {
-                expression { env.SHOULD_BUILD == 'true' }
+                expression { env.NO_SERVICES_TO_BUILD == 'false' }
             }
             steps {
                 script {
