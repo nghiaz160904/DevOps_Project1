@@ -3,6 +3,11 @@ pipeline {
 
     environment {
         OTHER = ''
+        environment {
+        DOCKER_HUB = credentials('docker-hub-cred')
+        APP_NAME = 'devops_project2'
+        DOCKER_IMAGE = "${nghiax1609}/${devops_project2}"
+    }
     }
     stages {
         stage('Check Changes') {
