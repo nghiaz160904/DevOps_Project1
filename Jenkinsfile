@@ -142,8 +142,16 @@ pipeline {
                     def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
                     def branch = env.GIT_BRANCH.replace('origin/', '')
                     
-                    // Login Docker Hub
-                    sh "echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --*Nghia1692004-stdin"
+                    // Đăng nhập Docker Hub an toàn
+                    withCredentials([usernamePassword(
+                        credentialsId: 'docker-hub-cred',
+                        passwordVariable: '*Nghia1692004',
+                        usernameVariable: 'nghiax1609'
+                    )]) {
+                        sh """
+                            docker login -u "$DOCKER_HUB_USR" --password-stdin <<< "\$DOCKER_HUB_PSW"
+                        """
+                    }
                     
                     // Build single image
                     sh "docker build -t ${DOCKER_IMAGE}:${commitId} ."
