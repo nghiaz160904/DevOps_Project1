@@ -3,11 +3,9 @@ pipeline {
 
     environment {
         OTHER = ''
-        environment {
         DOCKER_HUB = credentials('docker-hub-cred')
         APP_NAME = 'spring-petclinic-microservices'
         DOCKER_IMAGE = "${nghiax1609}/${spring-petclinic-microservices}"
-    }
     }
     stages {
         stage('Check Changes') {
