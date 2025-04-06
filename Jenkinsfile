@@ -149,7 +149,7 @@ pipeline {
                         usernameVariable: 'nghiax1609'
                     )]) {
                         sh """
-                            docker login -u "$DOCKER_HUB_USR" --password-stdin <<< "\$DOCKER_HUB_PSW"
+                            echo "$DOCKER_HUB_PSW" | docker login -u "$DOCKER_HUB_USR" --password-stdin
                         """
                     }
                     
