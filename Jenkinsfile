@@ -143,7 +143,7 @@ pipeline {
                     def branch = env.GIT_BRANCH.replace('origin/', '')
                     
                     // Login Docker Hub
-                    sh "echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --password-stdin"
+                    sh "echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --*Nghia1692004-stdin"
                     
                     // Build single image
                     sh "docker build -t ${DOCKER_IMAGE}:${commitId} ."
