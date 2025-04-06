@@ -6,7 +6,7 @@ pipeline {
     }
     stages {
         stage('Check Changes') {
-            agent { label 'master' } // Chạy trên Master
+            agent { label 'built-in' } // Chạy trên Master
             steps {
                 script {
                     echo "Commit SHA: ${GIT_COMMIT}"
@@ -47,7 +47,7 @@ pipeline {
         }
 
         stage('Test & Coverage - Agent 1') {
-            agent { label 'agent1' }  
+            agent { label 'agent-1' }  
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' && (env.SERVICE_CHANGED.contains('customers-service') || env.SERVICE_CHANGED.contains('visits-service')) }
             }
@@ -74,7 +74,7 @@ pipeline {
         }
 
         stage('Test & Coverage - Agent 2') {
-            agent { label 'agent2' }  
+            agent { label 'agent-2' }  
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' && env.SERVICE_CHANGED.contains('vets-service') }
             }
@@ -93,7 +93,7 @@ pipeline {
         }
 
         stage('Check Coverage') {
-            agent { label 'master' }
+            agent { label 'built-in' }
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' }
             }
@@ -129,7 +129,7 @@ pipeline {
         }
 
         stage('Build - Agent 1') {
-            agent { label 'agent1' }
+            agent { label 'agent-1' }
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' && (env.SERVICE_CHANGED.contains('customers-service') || env.SERVICE_CHANGED.contains('visits-service')) }
             }
@@ -146,7 +146,7 @@ pipeline {
         
 
         stage('Build - Agent 2') {
-            agent { label 'agent2' }
+            agent { label 'agent-2' }
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' && env.SERVICE_CHANGED.contains('vets-service') }
             }
