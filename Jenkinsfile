@@ -128,43 +128,52 @@ pipeline {
             }
         }
 
-        stage('Build - Agent 1') {
-            agent { label 'agent-1' }
+        stage('Build and Push Image') {
+            agent { label 'docker-agent' } // Agent có cài đặt Docker
             when {
-                expression { env.NO_SERVICES_TO_BUILD == 'false' && (env.SERVICE_CHANGED.contains('customers-service') || env.SERVICE_CHANGED.contains('visits-service')) }
+                expression { env.SHOULD_BUILD == 'true' }
             }
             steps {
                 script {
-                    def services = env.SERVICE_CHANGED.split(',').findAll { it in ['spring-petclinic-customers-service', 'spring-petclinic-visits-service'] }
-                    for (service in services) {
-                        echo "Building service: ${service} on Agent 1"
-                        sh "./mvnw package -pl ${service} -am -DskipTests"
+                    // Xác định tag image
+                    def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                    def branch = env.GIT_BRANCH.replace('origin/', '')
+                    
+                    // Login Docker Hub
+                    sh "echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --password-stdin"
+                    
+                    // Build single image
+                    sh "docker build -t ${DOCKER_IMAGE}:${commitId} ."
+                    sh "docker push ${DOCKER_IMAGE}:${commitId}"
+                    
+                    // Nếu là branch main, tag thêm latest
+                    if (branch == 'main') {
+                        sh "docker tag ${DOCKER_IMAGE}:${commitId} ${DOCKER_IMAGE}:latest"
+                        sh "docker push ${DOCKER_IMAGE}:latest"
+                    }
+
+                    // Lưu thông tin image để sử dụng trong CD
+                    env.BUILD_IMAGE_TAG = commitId
+                    if (branch == 'main') {
+                        env.LATEST_IMAGE_TAG = 'latest'
                     }
                 }
             }
         }
-        
-
-        stage('Build - Agent 2') {
-            agent { label 'agent-2' }
-            when {
-                expression { env.NO_SERVICES_TO_BUILD == 'false' && env.SERVICE_CHANGED.contains('vets-service') }
-            }
-            steps {
-                script {
-                    echo "Building vets-service on Agent 2"
-                    sh "./mvnw package -pl spring-petclinic-vets-service -am -DskipTests"
-                }
-            }
-        }
     }
-    
+
     post {
         success {
-            echo "Success"
+            script {
+                currentBuild.description = "Built image: ${DOCKER_IMAGE}:${env.BUILD_IMAGE_TAG ?: 'N/A'}"
+                echo "Pipeline completed successfully"
+            }
         }
         failure {
-            echo "Fail"
+            echo "Pipeline failed - Check logs for details"
+        }
+        aborted {
+            echo "Pipeline was aborted - No changes detected"
         }
     }
 }
