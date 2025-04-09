@@ -5,6 +5,8 @@ pipeline {
         OTHER = ''
         environment {
         DOCKER_HUB = credentials('docker-hub-cred')
+        DOCKER_HUB_USR = "${DOCKER_HUB_USR}"
+        DOCKER_HUB_PSW = "${DOCKER_HUB_PSW}"
         APP_NAME = 'spring-petclinic-microservices'
         DOCKER_IMAGE = "${nghiax1609}/${spring-petclinic-microservices}"
     }
@@ -133,36 +135,34 @@ pipeline {
             }
         }
 
-        stage('Build and Push Image') {
-            agent { label 'built-in' } // Agent có cài đặt Docker
-            when {
-                expression { env.SHOULD_BUILD == 'true' }
-            }
-            steps {
-                script {
-                    // Xác định tag image
-                    def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                    def branch = env.GIT_BRANCH.replace('origin/', '')
-                    
-                    // Login Docker Hub
-                    sh "echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --password-stdin"
-                    
-                    // Build single image
-                    sh "docker build -t ${DOCKER_IMAGE}:${commitId} ."
-                    sh "docker push ${DOCKER_IMAGE}:${commitId}"
-                    
-                    // Nếu là branch main, tag thêm latest
-                    if (branch == 'main') {
-                        sh "docker tag ${DOCKER_IMAGE}:${commitId} ${DOCKER_IMAGE}:latest"
-                        sh "docker push ${DOCKER_IMAGE}:latest"
-                    }
+    stage('Build and Push Image') {
+        agent { label 'built-in' } // Agent có cài đặt Docker
+        when {
+            expression { env.SHOULD_BUILD == 'true' }
+        }
+        steps {
+            script {
+                def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                def branch = env.GIT_BRANCH.replace('origin/', '')
 
-                    // Lưu thông tin image để sử dụng trong CD
-                    env.BUILD_IMAGE_TAG = commitId
-                    if (branch == 'main') {
-                        env.LATEST_IMAGE_TAG = 'latest'
+                sh "echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --password-stdin"
+
+                def services = env.SERVICE_CHANGED.split(',')
+                for (service in services) {
+                    echo "Building and pushing Docker image for service: ${service}"
+
+                    dir(service) {
+                        sh "docker build -t ${DOCKER_IMAGE}-${service}:${commitId} -f docker/Dockerfile ."
+                        sh "docker push ${DOCKER_IMAGE}-${service}:${commitId}"
+
+                        if (branch == 'main') {
+                            sh "docker tag ${DOCKER_IMAGE}-${service}:${commitId} ${DOCKER_IMAGE}-${service}:latest"
+                            sh "docker push ${DOCKER_IMAGE}-${service}:latest"
+                        }
                     }
                 }
+
+                env.BUILD_IMAGE_TAG = commitId
             }
         }
     }
