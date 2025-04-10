@@ -11,15 +11,16 @@ pipeline {
         DOCKER_IMAGE = 'nghiax1609/spring-petclinic-microservices'
     }
 
-    stage('Start Minikube') {
-        steps {
-            script {
-                echo "Starting Minikube..."
-                sh 'minikube start --memory=4096 --cpus=2'
+    
+    stages {
+        stage('Start Minikube') {
+            steps {
+                script {
+                    echo "Starting Minikube..."
+                    sh 'minikube start --memory=4096 --cpus=2'
+                }
             }
         }
-    }
-    stages {
         stage('Deploy to Kubernetes') {
             steps {
                 script {
