@@ -21,6 +21,16 @@ pipeline {
                 }
             }
         }
+        stage('Create Namespace') {
+            steps {
+                script {
+                    echo "Ensuring namespace spring-petclinic exists..."
+                    sh """
+                    kubectl get namespace spring-petclinic || kubectl create namespace spring-petclinic
+                    """
+                }
+            }
+        }
         stage('Deploy to Kubernetes') {
             steps {
                 script {
