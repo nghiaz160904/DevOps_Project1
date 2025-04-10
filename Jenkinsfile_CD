@@ -17,7 +17,7 @@ pipeline {
             steps {
                 script {
                     echo "Starting Minikube..."
-                    sh 'minikube start --memory=4096 --cpus=2'
+                    sh 'minikube start --memory=2048 --cpus=2'
                 }
             }
         }
