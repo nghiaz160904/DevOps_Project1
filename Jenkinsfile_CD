@@ -8,7 +8,7 @@ pipeline {
     }
 
     environment {
-        DOCKER_IMAGE = 'your-dockerhub-username/spring-petclinic'
+        DOCKER_IMAGE = 'nghiax1609/spring-petclinic-microservices'
         KUBECONFIG = credentials('kubeconfig-cred') // Kubeconfig for Kubernetes cluster
     }
 
