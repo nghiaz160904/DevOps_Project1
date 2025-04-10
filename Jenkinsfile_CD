@@ -11,7 +11,6 @@ pipeline {
         DOCKER_IMAGE = 'nghiax1609/spring-petclinic-microservices'
     }
 
-    
     stages {
         stage('Start Minikube') {
             steps {
@@ -21,6 +20,7 @@ pipeline {
                 }
             }
         }
+
         stage('Create Namespace') {
             steps {
                 script {
@@ -31,7 +31,21 @@ pipeline {
                 }
             }
         }
-        stage('Deploy to Kubernetes') {
+
+        stage('Deploy Helm Chart') {
+            steps {
+                script {
+                    echo "Deploying Helm Chart for Spring PetClinic..."
+                    sh """
+                    helm upgrade --install spring-petclinic ./spring-petclinic \
+                      --namespace spring-petclinic \
+                      --create-namespace
+                    """
+                }
+            }
+        }
+
+        stage('Update Images') {
             steps {
                 script {
                     // Danh sách các services trong ứng dụng Spring PetClinic
@@ -54,38 +68,12 @@ pipeline {
                     def imageTag = params.COMMIT_ID ?: 'latest'
 
                     for (service in services) {
-                        echo "Deploying ${service} with image tag ${imageTag}"
+                        echo "Updating image for ${service} with tag ${imageTag}"
 
-                        // Apply Kubernetes deployment
+                        // Update image for the service
                         sh """
                         kubectl set image deployment/${service} ${service}=${DOCKER_IMAGE}-${service}:${imageTag} -n spring-petclinic
                         kubectl rollout restart deployment/${service} -n spring-petclinic
-                        """
-
-                        // Create or update ingress rule
-                        def domain = params.BRANCH == 'main' ? 'dev.spring-petclinic.com' : params.BRANCH == 'RC' ? 'rc.spring-petclinic.com' : "${params.COMMIT_ID}.dev.spring-petclinic.com"
-                        sh """
-                        kubectl apply -f - <<EOF
-                        apiVersion: networking.k8s.io/v1
-                        kind: Ingress
-                        metadata:
-                        name: ${service}-ingress
-                        namespace: spring-petclinic
-                        annotations:
-                            nginx.ingress.kubernetes.io/rewrite-target: /
-                        spec:
-                        rules:
-                        - host: ${domain}
-                            http:
-                            paths:
-                            - path: /
-                                pathType: Prefix
-                                backend:
-                                service:
-                                    name: ${service}
-                                    port:
-                                    number: 8080
-                        EOF
                         """
                     }
                 }
