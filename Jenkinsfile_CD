@@ -9,9 +9,16 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = 'nghiax1609/spring-petclinic-microservices'
-        KUBECONFIG = credentials('kubeconfig-cred') // Kubeconfig for Kubernetes cluster
     }
 
+    stage('Start Minikube') {
+        steps {
+            script {
+                echo "Starting Minikube..."
+                sh 'minikube start --memory=4096 --cpus=2'
+            }
+        }
+    }
     stages {
         stage('Deploy to Kubernetes') {
             steps {
