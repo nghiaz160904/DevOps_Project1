@@ -24,50 +24,60 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 script {
-                    def domain = ''
-                    if (params.BRANCH == 'main') {
-                        domain = 'dev.spring-petclinic.com'
-                    } else if (params.BRANCH == 'RC') {
-                        domain = 'rc.spring-petclinic.com'
-                    } else {
-                        domain = "${params.COMMIT_ID}.dev.spring-petclinic.com"
+                    // Danh sách các services trong ứng dụng Spring PetClinic
+                    def services = [
+                        'api-gateway',
+                        'admin-server',
+                        'customers-service',
+                        'vets-service',
+                        'visits-service',
+                        'genai-service',
+                        'config-server',
+                        'discovery-server'
+                    ]
+
+                    // Nếu SERVICE được chỉ định, chỉ deploy service đó
+                    if (params.SERVICE) {
+                        services = [params.SERVICE]
                     }
 
                     def imageTag = params.COMMIT_ID ?: 'latest'
-                    def service = params.SERVICE
 
-                    echo "Deploying ${service} from branch ${params.BRANCH} with image tag ${imageTag} to ${domain}"
+                    for (service in services) {
+                        echo "Deploying ${service} with image tag ${imageTag}"
 
-                    // Apply Kubernetes deployment
-                    sh """
-                    kubectl set image deployment/${service} ${service}=${DOCKER_IMAGE}-${service}:${imageTag} -n spring-petclinic
-                    kubectl rollout restart deployment/${service} -n spring-petclinic
-                    """
+                        // Apply Kubernetes deployment
+                        sh """
+                        kubectl set image deployment/${service} ${service}=${DOCKER_IMAGE}-${service}:${imageTag} -n spring-petclinic
+                        kubectl rollout restart deployment/${service} -n spring-petclinic
+                        """
 
-                    // Create or update ingress rule
-                    sh """
-                    kubectl apply -f - <<EOF
-                    apiVersion: networking.k8s.io/v1
-                    kind: Ingress
-                    metadata:
-                      name: ${service}-ingress
-                      namespace: spring-petclinic
-                      annotations:
-                        nginx.ingress.kubernetes.io/rewrite-target: /
-                    spec:
-                      rules:
-                      - host: ${domain}
-                        http:
-                          paths:
-                          - path: /
-                            pathType: Prefix
-                            backend:
-                              service:
-                                name: ${service}
-                                port:
-                                  number: 8080
-                    EOF
-                    """
+                        // Create or update ingress rule
+                        def domain = params.BRANCH == 'main' ? 'dev.spring-petclinic.com' : params.BRANCH == 'RC' ? 'rc.spring-petclinic.com' : "${params.COMMIT_ID}.dev.spring-petclinic.com"
+                        sh """
+                        kubectl apply -f - <<EOF
+                        apiVersion: networking.k8s.io/v1
+                        kind: Ingress
+                        metadata:
+                        name: ${service}-ingress
+                        namespace: spring-petclinic
+                        annotations:
+                            nginx.ingress.kubernetes.io/rewrite-target: /
+                        spec:
+                        rules:
+                        - host: ${domain}
+                            http:
+                            paths:
+                            - path: /
+                                pathType: Prefix
+                                backend:
+                                service:
+                                    name: ${service}
+                                    port:
+                                    number: 8080
+                        EOF
+                        """
+                    }
                 }
             }
         }
