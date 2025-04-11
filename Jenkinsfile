@@ -134,6 +134,9 @@ pipeline {
         }
         stage('Build JAR') {
             agent { label 'built-in' } // Đảm bảo agent được chỉ định
+            when {
+                expression { env.NO_SERVICES_TO_BUILD == 'false' }
+            }
             steps {
                 script {
                     node {
