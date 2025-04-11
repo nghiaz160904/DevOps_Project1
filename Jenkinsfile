@@ -144,7 +144,7 @@ pipeline {
                     def branch = env.GIT_BRANCH.replace('origin/', '')
 
                     // Đăng nhập Docker Hub
-                    withCredentials([string(credentialsId: 'docker-hub-cred', variable: 'DOCKER_HUB_PSW')]) {
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-cred', usernameVariable: 'DOCKER_HUB_USR', passwordVariable: 'DOCKER_HUB_PSW')]) {
                         sh "echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --password-stdin"
                     }
 
