@@ -7,7 +7,7 @@ pipeline {
         DOCKER_HUB_USR = "${DOCKER_HUB_USR}"
         DOCKER_HUB_PSW = "${DOCKER_HUB_PSW}"
         APP_NAME = 'spring-petclinic-microservices'
-        DOCKER_IMAGE = "${nghiax1609}/${spring-petclinic-microservices}"
+        DOCKER_IMAGE = "nghiax1609/spring-petclinic-microservices"
     }
     stages {
         stage('Check Changes') {
