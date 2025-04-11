@@ -150,7 +150,7 @@ pipeline {
                         echo "Building and pushing Docker image for service: ${service}"
     
                         dir(service) {
-                            sh "docker build -t ${DOCKER_IMAGE}-${service}:${commitId} -f docker/Dockerfile ."
+                            sh "docker build -t ${DOCKER_IMAGE}-${service}:${commitId} -f ../docker/Dockerfile ."
                             sh "docker push ${DOCKER_IMAGE}-${service}:${commitId}"
     
                             if (branch == 'main') {
