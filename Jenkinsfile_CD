@@ -15,20 +15,9 @@ pipeline {
         stage('Start Minikube') {
             steps {
                 script {
-                    echo "Checking if Minikube is already running..."
-                    try {
-                        def minikubeStatus = sh(script: 'minikube status --format "{{.Host}},{{.Kubelet}},{{.APIServer}}"', returnStdout: true).trim()
-                        echo "Minikube status: ${minikubeStatus}"
-                        if (minikubeStatus != "Running,Running,Running") {
-                            echo "Minikube is not fully running. Starting Minikube..."
-                            sh 'minikube start --driver=docker --memory=2048 --cpus=2'
-                        } else {
-                            echo "Minikube is already fully running. Skipping start."
-                        }
-                    } catch (Exception e) {
-                        echo "Failed to check Minikube status. Attempting to start Minikube..."
-                        sh 'minikube start --driver=docker --memory=2048 --cpus=2'
-                    }
+                    sh 'minikube delete'
+                    sh 'minikube start --driver=docker --memory=2048 --cpus=2'
+                        
                 }
             }
         }
