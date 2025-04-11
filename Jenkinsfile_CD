@@ -18,9 +18,11 @@ pipeline {
                 script {
                     echo "Deploying Helm Chart for Spring PetClinic..."
                     sh """
+                    sh 'export KUBECONFIG=/home/ubuntu/.kube/config && minikube update-context'
                     kubectl config delete-cluster minikube
                     kubectl config delete-context minikube
                     minikube update-context
+                    sh 'kubectl config view --minify'
                     helm upgrade --install spring-petclinic ./spring-petclinic \
                       --namespace spring-petclinic \
                       --create-namespace
