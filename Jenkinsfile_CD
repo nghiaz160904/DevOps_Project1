@@ -12,15 +12,6 @@ pipeline {
     }
 
     stages {
-        stage('Start Minikube') {
-            steps {
-                script {
-                    sh 'minikube delete'
-                    sh 'minikube start --driver=docker --memory=2048 --cpus=2'
-                        
-                }
-            }
-        }
 
         stage('Deploy Helm Chart') {
             steps {
