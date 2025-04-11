@@ -18,6 +18,8 @@ pipeline {
                 script {
                     echo "Deploying Helm Chart for Spring PetClinic..."
                     sh """
+                    kubectl config delete-cluster minikube
+                    kubectl config delete-context minikube
                     minikube update-context
                     helm upgrade --install spring-petclinic ./spring-petclinic \
                       --namespace spring-petclinic \
