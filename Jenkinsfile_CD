@@ -16,13 +16,17 @@ pipeline {
             steps {
                 script {
                     echo "Checking if Minikube is already running..."
-                    def minikubeStatus = sh(script: 'minikube status --format "{{.Host}}"', returnStdout: true).trim()
-
-                    if (minikubeStatus != "Running") {
-                        echo "Minikube is not running. Starting Minikube..."
-                        sh 'minikube start --memory=2048 --cpus=2'
-                    } else {
-                        echo "Minikube is already running. Skipping start."
+                    try {
+                        def minikubeStatus = sh(script: 'minikube status --format "{{.Host}}"', returnStdout: true).trim()
+                        if (minikubeStatus != "Running") {
+                            echo "Minikube is not running. Starting Minikube..."
+                            sh 'minikube start --driver=docker --memory=2048 --cpus=2'
+                        } else {
+                            echo "Minikube is already running. Skipping start."
+                        }
+                    } catch (Exception e) {
+                        echo "Failed to check Minikube status. Attempting to start Minikube..."
+                        sh 'minikube start --driver=docker --memory=2048 --cpus=2'
                     }
                 }
             }
