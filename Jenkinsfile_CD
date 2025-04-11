@@ -17,28 +17,17 @@ pipeline {
                 script {
                     echo "Checking if Minikube is already running..."
                     try {
-                        def minikubeStatus = sh(script: 'minikube status --format "{{.Host}}"', returnStdout: true).trim()
-                        if (minikubeStatus != "Running") {
-                            echo "Minikube is not running. Starting Minikube..."
+                        def minikubeStatus = sh(script: 'minikube status --format "{{.Host}},{{.Kubelet}},{{.APIServer}}"', returnStdout: true).trim()
+                        if (minikubeStatus != "Running,Running,Running") {
+                            echo "Minikube is not fully running. Starting Minikube..."
                             sh 'minikube start --driver=docker --memory=2048 --cpus=2'
                         } else {
-                            echo "Minikube is already running. Skipping start."
+                            echo "Minikube is already fully running. Skipping start."
                         }
                     } catch (Exception e) {
                         echo "Failed to check Minikube status. Attempting to start Minikube..."
                         sh 'minikube start --driver=docker --memory=2048 --cpus=2'
                     }
-                }
-            }
-        }
-
-        stage('Create Namespace') {
-            steps {
-                script {
-                    echo "Ensuring namespace spring-petclinic exists..."
-                    sh """
-                    kubectl get namespace spring-petclinic || kubectl create namespace spring-petclinic
-                    """
                 }
             }
         }
