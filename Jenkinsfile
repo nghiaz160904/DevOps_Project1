@@ -133,12 +133,15 @@ pipeline {
             }
         }
         stage('Build JAR') {
+            agent { label 'built-in' } // Đảm bảo agent được chỉ định
             steps {
                 script {
-                    def services = env.SERVICE_CHANGED.split(',')
-                    for (service in services) {
-                        echo "Building JAR for service: ${service}"
-                        sh "./mvnw clean package -DskipTests -pl ${service} -am"
+                    node {
+                        def services = env.SERVICE_CHANGED.split(',')
+                        for (service in services) {
+                            echo "Building JAR for service: ${service}"
+                            sh "./mvnw clean package -DskipTests -pl ${service} -am"
+                        }
                     }
                 }
             }
@@ -151,29 +154,31 @@ pipeline {
             }
             steps {
                 script {
-                    def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                    def branch = env.GIT_BRANCH.replace('origin/', '')
+                    node {
+                        def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                        def branch = env.GIT_BRANCH.replace('origin/', '')
 
-                    sh "echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --password-stdin"
+                        sh "echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --password-stdin"
 
-                    def services = env.SERVICE_CHANGED.split(',')
-                    for (service in services) {
-                        echo "Checking JAR file for service: ${service}"
-                        sh "ls -l ${service}/target/*.jar" // Kiểm tra file .jar
+                        def services = env.SERVICE_CHANGED.split(',')
+                        for (service in services) {
+                            echo "Checking JAR file for service: ${service}"
+                            sh "ls -l ${service}/target/*.jar" // Kiểm tra file .jar
 
-                        echo "Building and pushing Docker image for service: ${service}"
-                        dir(service) {
-                            sh "docker build --build-arg ARTIFACT_NAME=${service} -t ${DOCKER_IMAGE}-${service}:${commitId} -f ../docker/Dockerfile ."
-                            sh "docker push ${DOCKER_IMAGE}-${service}:${commitId}"
+                            echo "Building and pushing Docker image for service: ${service}"
+                            dir(service) {
+                                sh "docker build --build-arg ARTIFACT_NAME=${service} -t ${DOCKER_IMAGE}-${service}:${commitId} -f ../docker/Dockerfile ."
+                                sh "docker push ${DOCKER_IMAGE}-${service}:${commitId}"
+                            }
+
+                            if (branch == 'main') {
+                                sh "docker tag ${DOCKER_IMAGE}-${service}:${commitId} ${DOCKER_IMAGE}-${service}:latest"
+                                sh "docker push ${DOCKER_IMAGE}-${service}:latest"
+                            }
                         }
 
-                        if (branch == 'main') {
-                            sh "docker tag ${DOCKER_IMAGE}-${service}:${commitId} ${DOCKER_IMAGE}-${service}:latest"
-                            sh "docker push ${DOCKER_IMAGE}-${service}:latest"
-                        }
+                        env.BUILD_IMAGE_TAG = commitId
                     }
-
-                    env.BUILD_IMAGE_TAG = commitId
                 }
             }
         }
