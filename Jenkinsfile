@@ -1,5 +1,5 @@
 pipeline {
-    agent none  // Không chạy trên Master, chỉ điều phốii
+    agent none  // Không chạy trên Master, chỉ điều phối
 
     environment {
         OTHER = ''
@@ -7,7 +7,7 @@ pipeline {
         DOCKER_HUB_USR = "${DOCKER_HUB_USR}"
         DOCKER_HUB_PSW = "${DOCKER_HUB_PSW}"
         APP_NAME = 'spring-petclinic-microservices'
-        DOCKER_IMAGE = "nghiax1609/spring-petclinic-microservices"b
+        DOCKER_IMAGE = "nghiax1609/spring-petclinic-microservices"
     }
     stages {
         stage('Check Changes') {
@@ -98,7 +98,7 @@ pipeline {
         }
 
         stage('Check Coverage') {
-            agent { label 'master' }
+            agent { label 'built-in' }
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' }
             }
@@ -133,7 +133,7 @@ pipeline {
             }
         }
         stage('Build JAR') {
-            agent { label 'master' } // Đảm bảo agent được chỉ định
+            agent { label 'built-in' } // Đảm bảo agent được chỉ định
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' }
             }
@@ -151,7 +151,7 @@ pipeline {
         }
 
         stage('Build and Push Image') {
-            agent { label 'master' } // Agent có cài đặt Docker
+            agent { label 'built-in' } // Agent có cài đặt Docker
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' }
             }
