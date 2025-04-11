@@ -3,13 +3,11 @@ pipeline {
 
     environment {
         OTHER = ''
-        environment {
         DOCKER_HUB = credentials('docker-hub-cred')
         DOCKER_HUB_USR = "${DOCKER_HUB_USR}"
         DOCKER_HUB_PSW = "${DOCKER_HUB_PSW}"
         APP_NAME = 'spring-petclinic-microservices'
-        DOCKER_IMAGE = "${nghiax1609}/${spring-petclinic-microservices}"
-    }
+        DOCKER_IMAGE = "nghiax1609/spring-petclinic-microservices"
     }
     stages {
         stage('Check Changes') {
@@ -135,38 +133,40 @@ pipeline {
             }
         }
 
-    stage('Build and Push Image') {
-        agent { label 'built-in' } // Agent có cài đặt Docker
-        when {
-            expression { env.SHOULD_BUILD == 'true' }
-        }
-        steps {
-            script {
-                def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                def branch = env.GIT_BRANCH.replace('origin/', '')
+        stage('Build and Push Image') {
+            agent { label 'built-in' } // Agent có cài đặt Docker
+            when {
+                expression { env.NO_SERVICES_TO_BUILD == 'false' }
+            }
+            steps {
+                script {
+                    def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                    def branch = env.GIT_BRANCH.replace('origin/', '')
 
-                sh "echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --password-stdin"
+                    // Đăng nhập Docker Hub
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-cred', usernameVariable: 'DOCKER_HUB_USR', passwordVariable: 'DOCKER_HUB_PSW')]) {
+                        sh "echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --password-stdin"
+                    }
 
-                def services = env.SERVICE_CHANGED.split(',')
-                for (service in services) {
-                    echo "Building and pushing Docker image for service: ${service}"
+                    def services = env.SERVICE_CHANGED.split(',')
+                    for (service in services) {
+                        echo "Building Docker image for service: ${service}"
+                        dir(service) {
+                            sh "../mvnw clean install -P buildDocker"
+                        }
 
-                    dir(service) {
-                        sh "docker build -t ${DOCKER_IMAGE}-${service}:${commitId} -f docker/Dockerfile ."
+                        echo "Tagging and pushing Docker image for service: ${service}"
+                        sh "docker tag ${DOCKER_IMAGE}-${service}:latest ${DOCKER_IMAGE}-${service}:${commitId}"
                         sh "docker push ${DOCKER_IMAGE}-${service}:${commitId}"
 
                         if (branch == 'main') {
-                            sh "docker tag ${DOCKER_IMAGE}-${service}:${commitId} ${DOCKER_IMAGE}-${service}:latest"
                             sh "docker push ${DOCKER_IMAGE}-${service}:latest"
                         }
                     }
                 }
-
-                env.BUILD_IMAGE_TAG = commitId
             }
         }
     }
-
     post {
         success {
             script {
