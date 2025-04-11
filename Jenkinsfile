@@ -1,5 +1,5 @@
 pipeline {
-    agent none  // Không chạy trên Master, chỉ điều phối
+    agent none  // Không chạy trên Master, chỉ điều phốii
 
     environment {
         OTHER = ''
