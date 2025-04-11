@@ -15,8 +15,15 @@ pipeline {
         stage('Start Minikube') {
             steps {
                 script {
-                    echo "Starting Minikube..."
-                    sh 'minikube start --memory=2048 --cpus=2'
+                    echo "Checking if Minikube is already running..."
+                    def minikubeStatus = sh(script: 'minikube status --format "{{.Host}}"', returnStdout: true).trim()
+
+                    if (minikubeStatus != "Running") {
+                        echo "Minikube is not running. Starting Minikube..."
+                        sh 'minikube start --memory=2048 --cpus=2'
+                    } else {
+                        echo "Minikube is already running. Skipping start."
+                    }
                 }
             }
         }
