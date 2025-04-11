@@ -18,6 +18,7 @@ pipeline {
                 script {
                     echo "Deploying Helm Chart for Spring PetClinic..."
                     sh """
+                    minikube update-context
                     helm upgrade --install spring-petclinic ./spring-petclinic \
                       --namespace spring-petclinic \
                       --create-namespace
