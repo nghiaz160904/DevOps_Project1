@@ -18,6 +18,7 @@ pipeline {
                     echo "Checking if Minikube is already running..."
                     try {
                         def minikubeStatus = sh(script: 'minikube status --format "{{.Host}},{{.Kubelet}},{{.APIServer}}"', returnStdout: true).trim()
+                        echo "Minikube status: ${minikubeStatus}"
                         if (minikubeStatus != "Running,Running,Running") {
                             echo "Minikube is not fully running. Starting Minikube..."
                             sh 'minikube start --driver=docker --memory=2048 --cpus=2'
