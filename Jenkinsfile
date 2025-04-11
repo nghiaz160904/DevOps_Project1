@@ -1,82 +1,100 @@
 pipeline {
-    agent none
+    agent none  // Không chạy trên Master, chỉ điều phối
 
     environment {
         OTHER = ''
+        environment {
         DOCKER_HUB = credentials('docker-hub-cred')
+        DOCKER_HUB_USR = "${DOCKER_HUB_USR}"
+        DOCKER_HUB_PSW = "${DOCKER_HUB_PSW}"
         APP_NAME = 'spring-petclinic-microservices'
+        DOCKER_IMAGE = "${nghiax1609}/${spring-petclinic-microservices}"
     }
-
+    }
     stages {
         stage('Check Changes') {
-            agent { label 'built-in' }
+            agent { label 'built-in' } // Chạy trên Master
             steps {
                 script {
                     echo "Commit SHA: ${GIT_COMMIT}"
-                    def changedFiles = sh(script: "git diff --name-only HEAD^", returnStdout: true).trim().split('\n')
-                    def services = ['spring-petclinic-customers-service', 'spring-petclinic-visits-service', 'spring-petclinic-vets-service']
-                    def detectedServices = services.findAll { svc -> changedFiles.any { it.startsWith("$svc/") } }
+                    def changedFiles = []
+                    env.NO_SERVICES_TO_BUILD = 'false'
+                    if (env.CHANGE_TARGET) {
+                        changedFiles = sh(script: "git diff --name-only HEAD^", returnStdout: true).trim().split('\n').toList()
+                    } else {
+                        changedFiles = sh(script: "git diff --name-only HEAD^", returnStdout: true).trim().split('\n').toList()
+                    }
 
-                    if (detectedServices.isEmpty()) {
-                        echo "No relevant service changes detected. Skipping pipeline."
-                        env.NO_SERVICES_TO_BUILD = 'true'
+                    def services = ['spring-petclinic-customers-service', 'spring-petclinic-visits-service', 'spring-petclinic-vets-service']
+                    
+                    echo "Changed files: ${changedFiles}"
+
+                    if (changedFiles.isEmpty() || changedFiles[0] == '') {
+                        echo "No changes detected. Skipping pipeline."
                         currentBuild.result = 'ABORTED'
                         return
                     }
 
-                    env.NO_SERVICES_TO_BUILD = 'false'
-                    env.SERVICE_CHANGED = detectedServices.join(',')
-                    echo "Detected changed services: ${env.SERVICE_CHANGED}"
+                    def detectedServices = []
+                    for (service in services) {
+                        if (changedFiles.any { it.startsWith(service + '/') }) {
+                            detectedServices << service
+                        }
+                    }
+
+                    if (detectedServices.isEmpty()) {
+                        echo "No relevant service changes detected. Skipping pipeline."
+                        env.NO_SERVICES_TO_BUILD = 'true'
+                    } else {
+                        echo "Detected Services: ${detectedServices}"
+                        env.SERVICE_CHANGED = detectedServices.join(",")
+                    }
                 }
             }
         }
 
-        stage('Test & Coverage') {
-            parallel {
-                stage('Agent 1') {
-                    agent { label 'agent1' }
-                    when {
-                        expression { env.NO_SERVICES_TO_BUILD == 'false' && (env.SERVICE_CHANGED.contains('customers') || env.SERVICE_CHANGED.contains('visits')) }
+        stage('Test & Coverage - Agent 1') {
+            agent { label 'agent1' }  
+            when {
+                expression { env.NO_SERVICES_TO_BUILD == 'false' && (env.SERVICE_CHANGED.contains('customers-service') || env.SERVICE_CHANGED.contains('visits-service')) }
+            }
+            steps {
+                script {
+                    def services = env.SERVICE_CHANGED.split(',').findAll { it in ['spring-petclinic-customers-service', 'spring-petclinic-visits-service'] }
+                    for (service in services) {
+                        echo "Running unit tests for service: ${service} on Agent 1"
+                        sh "./mvnw clean verify -pl ${service} -am"
+                        stash name: "${service}-coverage", includes: "${service}/target/site/jacoco/**"
                     }
-                    steps {
-                        script {
-                            def services = env.SERVICE_CHANGED.split(',').findAll { it.contains('customers') || it.contains('visits') }
-                            for (service in services) {
-                                echo "Running tests for ${service} on agent1"
-                                sh "./mvnw clean verify -pl ${service} -am"
-                                stash name: "${service}-coverage", includes: "${service}/target/site/jacoco/**"
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            script {
-                                def services = env.SERVICE_CHANGED.split(',')
-                                for (service in services) {
-                                    junit "${service}/target/surefire-reports/*.xml"
-                                }
-                            }
+                }
+            }
+            post {
+                always {
+                    script {
+                        def services = env.SERVICE_CHANGED.split(',')
+                        for (service in services) {
+                            junit "${service}/target/surefire-reports/*.xml"
                         }
                     }
                 }
+            }
+        }
 
-                stage('Agent 2') {
-                    agent { label 'agent2' }
-                    when {
-                        expression { env.NO_SERVICES_TO_BUILD == 'false' && env.SERVICE_CHANGED.contains('vets') }
-                    }
-                    steps {
-                        script {
-                            echo "Running tests for vets-service on agent2"
-                            sh "./mvnw clean verify -pl spring-petclinic-vets-service -am"
-                            stash name: "spring-petclinic-vets-service-coverage", includes: "spring-petclinic-vets-service/target/site/jacoco/**"
-                        }
-                    }
-                    post {
-                        always {
-                            junit "spring-petclinic-vets-service/target/surefire-reports/*.xml"
-                        }
-                    }
+        stage('Test & Coverage - Agent 2') {
+            agent { label 'agent2' }  
+            when {
+                expression { env.NO_SERVICES_TO_BUILD == 'false' && env.SERVICE_CHANGED.contains('vets-service') }
+            }
+            steps {
+                script {
+                    echo "Running unit tests for vets-service on Agent 2"
+                    sh "./mvnw clean verify -pl spring-petclinic-vets-service -am"
+                    stash name: "spring-petclinic-vets-service-coverage", includes: "spring-petclinic-vets-service/target/site/jacoco/**"
+                }
+            }
+            post {
+                always {
+                    junit "spring-petclinic-vets-service/target/surefire-reports/*.xml"
                 }
             }
         }
@@ -89,72 +107,78 @@ pipeline {
             steps {
                 script {
                     def services = env.SERVICE_CHANGED.split(',')
-                    def failedCoverage = []
+                    def failedCoverageServices = []
 
+                    // unstash artifacts từ các agents khác
                     for (service in services) {
                         unstash "${service}-coverage"
+                    }
+
+                    for (service in services) {
                         def coverageHtml = sh(
                             script: "xmllint --html --xpath 'string(//table[@id=\"coveragetable\"]/tfoot/tr/td[3])' ${service}/target/site/jacoco/index.html 2>/dev/null",
                             returnStdout: true
                         ).trim()
 
                         def coverage = coverageHtml.replace('%', '').toFloat() / 100
-                        echo "Coverage for ${service}: ${coverage * 100}%"
-                        if (coverage < 0.7) failedCoverage << service
+                        echo "Test Coverage for ${service}: ${coverage * 100}%"
+
+                        if (coverage < 0.70) {
+                            failedCoverageServices << service
+                        }
                     }
 
-                    if (!failedCoverage.isEmpty()) {
-                        error "Coverage < 70% for: ${failedCoverage.join(', ')}"
+                    if (failedCoverageServices.size() > 0) {
+                        error "Coverage below 70% for services: ${failedCoverageServices.join(', ')}! Pipeline failed."
                     }
                 }
             }
         }
 
-        stage('Build & Push Docker Images') {
-            agent { label 'built-in' }
-            when {
-                expression { env.NO_SERVICES_TO_BUILD == 'false' }
-            }
-            steps {
-                script {
-                    def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                    def branch = env.GIT_BRANCH.replace('origin/', '')
-                    def services = env.SERVICE_CHANGED.split(',')
+    stage('Build and Push Image') {
+        agent { label 'built-in' } // Agent có cài đặt Docker
+        when {
+            expression { env.NO_SERVICES_TO_BUILD == 'false' }
+        }
+        steps {
+            script {
+                def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                def branch = env.GIT_BRANCH.replace('origin/', '')
 
-                    withCredentials([usernamePassword(
-                        credentialsId: 'docker-hub-cred',
-                        usernameVariable: 'DOCKER_HUB_USR',
-                        passwordVariable: 'DOCKER_HUB_PSW'
-                    )]) {
-                        sh "echo \"$DOCKER_HUB_PSW\" | docker login -u \"$DOCKER_HUB_USR\" --password-stdin"
-                    }
+                sh "echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --password-stdin"
 
-                    for (service in services) {
-                        def image = "nghiax1609/${service}:${commitId}"
-                        echo "Building Docker image for ${service}"
-                        sh "docker build -t ${image} ${service}"
-                        sh "docker push ${image}"
+                def services = env.SERVICE_CHANGED.split(',')
+                for (service in services) {
+                    echo "Building and pushing Docker image for service: ${service}"
+
+                    dir(service) {
+                        sh "docker build -t ${DOCKER_IMAGE}-${service}:${commitId} -f docker/Dockerfile ."
+                        sh "docker push ${DOCKER_IMAGE}-${service}:${commitId}"
 
                         if (branch == 'main') {
-                            def latestImage = "nghiax1609/${service}:latest"
-                            sh "docker tag ${image} ${latestImage}"
-                            sh "docker push ${latestImage}"
+                            sh "docker tag ${DOCKER_IMAGE}-${service}:${commitId} ${DOCKER_IMAGE}-${service}:latest"
+                            sh "docker push ${DOCKER_IMAGE}-${service}:latest"
                         }
                     }
                 }
+
+                env.BUILD_IMAGE_TAG = commitId
             }
         }
     }
 
     post {
         success {
-            echo "✅ Pipeline completed successfully."
+            script {
+                currentBuild.description = "Built image: ${DOCKER_IMAGE}:${env.BUILD_IMAGE_TAG ?: 'N/A'}"
+                echo "Pipeline completed successfully"
+            }
         }
         failure {
-            echo "❌ Pipeline failed."
+            echo "Pipeline failed - Check logs for details"
         }
         aborted {
-            echo "⚠️ Pipeline was aborted."
+            echo "Pipeline was aborted - No changes detected"
         }
     }
 }
