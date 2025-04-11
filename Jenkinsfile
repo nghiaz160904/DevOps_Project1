@@ -11,7 +11,7 @@ pipeline {
     }
     stages {
         stage('Check Changes') {
-            agent { label 'master' } // Chạy trên Master
+            agent { label 'built-in' } // Chạy trên Master
             steps {
                 script {
                     echo "Commit SHA: ${GIT_COMMIT}"
