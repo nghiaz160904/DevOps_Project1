@@ -18,6 +18,7 @@ pipeline {
                 script {
                     echo "Deploying Helm Chart for Spring PetClinic..."
                     sh """
+                    whoami
                     export PATH=$PATH:/usr/local/bin
                     export HOME=/var/lib/jenkins
                     export KUBECONFIG=/home/ubuntu/.kube/config
