@@ -133,50 +133,51 @@ pipeline {
             }
         }
 
-    stage('Build and Push Image') {
-        agent { label 'built-in' } // Agent có cài đặt Docker
-        when {
-            expression { env.NO_SERVICES_TO_BUILD == 'false' }
-        }
-        steps {
-            script {
-                def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                def branch = env.GIT_BRANCH.replace('origin/', '')
-
-                sh "echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --password-stdin"
-
-                def services = env.SERVICE_CHANGED.split(',')
-                for (service in services) {
-                    echo "Building and pushing Docker image for service: ${service}"
-
-                    dir(service) {
-                        sh "docker build -t ${DOCKER_IMAGE}-${service}:${commitId} -f docker/Dockerfile ."
-                        sh "docker push ${DOCKER_IMAGE}-${service}:${commitId}"
-
-                        if (branch == 'main') {
-                            sh "docker tag ${DOCKER_IMAGE}-${service}:${commitId} ${DOCKER_IMAGE}-${service}:latest"
-                            sh "docker push ${DOCKER_IMAGE}-${service}:latest"
+        stage('Build and Push Image') {
+            agent { label 'built-in' } // Agent có cài đặt Docker
+            when {
+                expression { env.NO_SERVICES_TO_BUILD == 'false' }
+            }
+            steps {
+                script {
+                    def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                    def branch = env.GIT_BRANCH.replace('origin/', '')
+    
+                    sh "echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --password-stdin"
+    
+                    def services = env.SERVICE_CHANGED.split(',')
+                    for (service in services) {
+                        echo "Building and pushing Docker image for service: ${service}"
+    
+                        dir(service) {
+                            sh "docker build -t ${DOCKER_IMAGE}-${service}:${commitId} -f docker/Dockerfile ."
+                            sh "docker push ${DOCKER_IMAGE}-${service}:${commitId}"
+    
+                            if (branch == 'main') {
+                                sh "docker tag ${DOCKER_IMAGE}-${service}:${commitId} ${DOCKER_IMAGE}-${service}:latest"
+                                sh "docker push ${DOCKER_IMAGE}-${service}:latest"
+                            }
                         }
                     }
+    
+                    env.BUILD_IMAGE_TAG = commitId
                 }
-
-                env.BUILD_IMAGE_TAG = commitId
             }
         }
-    }
-
-    post {
-        success {
-            script {
-                currentBuild.description = "Built image: ${DOCKER_IMAGE}:${env.BUILD_IMAGE_TAG ?: 'N/A'}"
-                echo "Pipeline completed successfully"
+    
+        post {
+            success {
+                script {
+                    currentBuild.description = "Built image: ${DOCKER_IMAGE}:${env.BUILD_IMAGE_TAG ?: 'N/A'}"
+                    echo "Pipeline completed successfully"
+                }
             }
-        }
-        failure {
-            echo "Pipeline failed - Check logs for details"
-        }
-        aborted {
-            echo "Pipeline was aborted - No changes detected"
+            failure {
+                echo "Pipeline failed - Check logs for details"
+            }
+            aborted {
+                echo "Pipeline was aborted - No changes detected"
+            }
         }
     }
 }
