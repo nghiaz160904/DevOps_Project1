@@ -164,20 +164,19 @@ pipeline {
                 }
             }
         }
-    
-        post {
-            success {
-                script {
-                    currentBuild.description = "Built image: ${DOCKER_IMAGE}:${env.BUILD_IMAGE_TAG ?: 'N/A'}"
-                    echo "Pipeline completed successfully"
-                }
+    }
+    post {
+        success {
+            script {
+                currentBuild.description = "Built image: ${DOCKER_IMAGE}:${env.BUILD_IMAGE_TAG ?: 'N/A'}"
+                echo "Pipeline completed successfully"
             }
-            failure {
-                echo "Pipeline failed - Check logs for details"
-            }
-            aborted {
-                echo "Pipeline was aborted - No changes detected"
-            }
+        }
+        failure {
+            echo "Pipeline failed - Check logs for details"
+        }
+        aborted {
+            echo "Pipeline was aborted - No changes detected"
         }
     }
 }
