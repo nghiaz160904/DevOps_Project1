@@ -7,11 +7,11 @@ pipeline {
         DOCKER_HUB_USR = "${DOCKER_HUB_USR}"
         DOCKER_HUB_PSW = "${DOCKER_HUB_PSW}"
         APP_NAME = 'spring-petclinic-microservices'
-        DOCKER_IMAGE = "nghiax1609/spring-petclinic-microservices"
+        DOCKER_IMAGE = "nghiax1609/spring-petclinic-microservices"b
     }
     stages {
         stage('Check Changes') {
-            agent { label 'built-in' } // Chạy trên Master
+            agent { label 'master' } // Chạy trên Master
             steps {
                 script {
                     echo "Commit SHA: ${GIT_COMMIT}"
@@ -98,7 +98,7 @@ pipeline {
         }
 
         stage('Check Coverage') {
-            agent { label 'built-in' }
+            agent { label 'master' }
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' }
             }
@@ -133,7 +133,7 @@ pipeline {
             }
         }
         stage('Build JAR') {
-            agent { label 'built-in' } // Đảm bảo agent được chỉ định
+            agent { label 'master' } // Đảm bảo agent được chỉ định
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' }
             }
@@ -151,7 +151,7 @@ pipeline {
         }
 
         stage('Build and Push Image') {
-            agent { label 'built-in' } // Agent có cài đặt Docker
+            agent { label 'master' } // Agent có cài đặt Docker
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' }
             }
