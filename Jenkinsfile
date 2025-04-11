@@ -132,6 +132,17 @@ pipeline {
                 }
             }
         }
+        stage('Build JAR') {
+            steps {
+                script {
+                    def services = env.SERVICE_CHANGED.split(',')
+                    for (service in services) {
+                        echo "Building JAR for service: ${service}"
+                        sh "./mvnw clean package -DskipTests -pl ${service} -am"
+                    }
+                }
+            }
+        }
 
         stage('Build and Push Image') {
             agent { label 'built-in' } // Agent có cài đặt Docker
@@ -142,24 +153,26 @@ pipeline {
                 script {
                     def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
                     def branch = env.GIT_BRANCH.replace('origin/', '')
-    
+
                     sh "echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --password-stdin"
-    
+
                     def services = env.SERVICE_CHANGED.split(',')
                     for (service in services) {
+                        echo "Checking JAR file for service: ${service}"
+                        sh "ls -l ${service}/target/*.jar" // Kiểm tra file .jar
+
                         echo "Building and pushing Docker image for service: ${service}"
-    
                         dir(service) {
-                            sh "docker build -t ${DOCKER_IMAGE}-${service}:${commitId} -f ../docker/Dockerfile ."
+                            sh "docker build --build-arg ARTIFACT_NAME=${service} -t ${DOCKER_IMAGE}-${service}:${commitId} -f ../docker/Dockerfile ."
                             sh "docker push ${DOCKER_IMAGE}-${service}:${commitId}"
-    
-                            if (branch == 'main') {
-                                sh "docker tag ${DOCKER_IMAGE}-${service}:${commitId} ${DOCKER_IMAGE}-${service}:latest"
-                                sh "docker push ${DOCKER_IMAGE}-${service}:latest"
-                            }
+                        }
+
+                        if (branch == 'main') {
+                            sh "docker tag ${DOCKER_IMAGE}-${service}:${commitId} ${DOCKER_IMAGE}-${service}:latest"
+                            sh "docker push ${DOCKER_IMAGE}-${service}:latest"
                         }
                     }
-    
+
                     env.BUILD_IMAGE_TAG = commitId
                 }
             }
