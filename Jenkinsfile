@@ -156,11 +156,11 @@ pipeline {
                         }
 
                         echo "Tagging and pushing Docker image for service: ${service}"
-                        sh "docker tag ${DOCKER_IMAGE}-${service}:latest ${DOCKER_IMAGE}-${service}:${commitId}"
-                        sh "docker push ${DOCKER_IMAGE}-${service}:${commitId}"
+                        sh "docker tag ${DOCKER_HUB_USR}/${service}:latest ${DOCKER_HUB_USR}/${service}:${commitId}"
+                        sh "docker push ${DOCKER_HUB_USR}/${service}:${commitId}"
 
                         if (branch == 'main') {
-                            sh "docker push ${DOCKER_IMAGE}-${service}:latest"
+                            sh "docker push ${DOCKER_HUB_USR}/${service}:latest"
                         }
                     }
                 }
