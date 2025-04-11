@@ -132,23 +132,6 @@ pipeline {
                 }
             }
         }
-        stage('Build JAR') {
-            agent { label 'built-in' } // Đảm bảo agent được chỉ định
-            when {
-                expression { env.NO_SERVICES_TO_BUILD == 'false' }
-            }
-            steps {
-                script {
-                    node {
-                        def services = env.SERVICE_CHANGED.split(',')
-                        for (service in services) {
-                            echo "Building JAR for service: ${service}"
-                            sh "./mvnw clean package -DskipTests -pl ${service} -am"
-                        }
-                    }
-                }
-            }
-        }
 
         stage('Build and Push Image') {
             agent { label 'built-in' } // Agent có cài đặt Docker
@@ -157,36 +140,28 @@ pipeline {
             }
             steps {
                 script {
-                    node {
-                        def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                        def branch = env.GIT_BRANCH.replace('origin/', '')
-        
-                        // Kiểm tra Docker
-                        sh "docker --version"
-        
-                        // Đăng nhập Docker Hub
-                        withCredentials([string(credentialsId: 'docker-hub-cred', variable: 'DOCKER_HUB_PSW')]) {
-                            sh "echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --password-stdin"
+                    def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                    def branch = env.GIT_BRANCH.replace('origin/', '')
+
+                    // Đăng nhập Docker Hub
+                    withCredentials([string(credentialsId: 'docker-hub-cred', variable: 'DOCKER_HUB_PSW')]) {
+                        sh "echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --password-stdin"
+                    }
+
+                    def services = env.SERVICE_CHANGED.split(',')
+                    for (service in services) {
+                        echo "Building Docker image for service: ${service}"
+                        dir(service) {
+                            sh "../mvnw clean install -P buildDocker"
                         }
-        
-                        def services = env.SERVICE_CHANGED.split(',')
-                        for (service in services) {
-                            echo "Checking JAR file for service: ${service}"
-                            sh "ls -l ${service}/target/*.jar" // Kiểm tra file .jar
-        
-                            echo "Building and pushing Docker image for service: ${service}"
-                            dir(service) {
-                                sh "docker build --build-arg ARTIFACT_NAME=${service} -t ${DOCKER_IMAGE}-${service}:${commitId} -f ../docker/Dockerfile ."
-                                sh "docker push ${DOCKER_IMAGE}-${service}:${commitId}"
-                            }
-        
-                            if (branch == 'main') {
-                                sh "docker tag ${DOCKER_IMAGE}-${service}:${commitId} ${DOCKER_IMAGE}-${service}:latest"
-                                sh "docker push ${DOCKER_IMAGE}-${service}:latest"
-                            }
+
+                        echo "Tagging and pushing Docker image for service: ${service}"
+                        sh "docker tag ${DOCKER_IMAGE}-${service}:latest ${DOCKER_IMAGE}-${service}:${commitId}"
+                        sh "docker push ${DOCKER_IMAGE}-${service}:${commitId}"
+
+                        if (branch == 'main') {
+                            sh "docker push ${DOCKER_IMAGE}-${service}:latest"
                         }
-        
-                        env.BUILD_IMAGE_TAG = commitId
                     }
                 }
             }
