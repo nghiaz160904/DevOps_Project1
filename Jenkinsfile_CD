@@ -62,25 +62,14 @@ pipeline {
                         'config-server',
                         'discovery-server'
                     ]
-                    def servicePorts = [
-                        'api-gateway': 8080,
-                        'admin-server': 9090,
-                        'customers-service': 8081,
-                        'vets-service': 8082,
-                        'visits-service': 8083,
-                        'genai-service': 8084,
-                        'config-server': 8888,
-                        'discovery-server': 8761
-                    ]
 
-                    // Kiểm tra và lấy tag của image
-                    def imageTag = params.COMMIT_ID ?: sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                    // Nếu SERVICE được chỉ định, chỉ deploy service đó
                     if (params.SERVICE) {
-                        echo "Deploying specific service: ${params.SERVICE}"
                         services = [params.SERVICE]
-                    } else {
-                        echo "Deploying all services"
                     }
+
+                    def imageTag = params.COMMIT_ID ?: 'latest'
+
                     for (service in services) {
                         echo "Ensuring deployment and service for ${service} exist..."
 
@@ -91,7 +80,7 @@ pipeline {
 
                         // Kiểm tra và tạo Service nếu chưa tồn tại
                         sh """
-                        kubectl get service ${service} -n spring-petclinic || kubectl expose deployment ${service} --type=ClusterIP --port=${servicePorts[service]} -n spring-petclinic
+                        kubectl get service ${service} -n spring-petclinic || kubectl expose deployment ${service} --type=ClusterIP --port=8080 -n spring-petclinic
                         """
 
                         echo "Updating image for ${service} with tag ${imageTag}"
