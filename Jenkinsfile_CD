@@ -52,23 +52,16 @@ pipeline {
                     """
 
                     // Danh sách các services trong ứng dụng Spring PetClinic
-                    def services = [
-                        'api-gateway',
-                        'admin-server',
-                        'customers-service',
-                        'vets-service',
-                        'visits-service',
-                        'genai-service',
-                        'config-server',
-                        'discovery-server'
+                    def servicePorts = [
+                        'api-gateway': 8080,
+                        'admin-server': 9090,
+                        'customers-service': 8081,
+                        'vets-service': 8082,
+                        'visits-service': 8083,
+                        'genai-service': 8084,
+                        'config-server': 8888,
+                        'discovery-server': 8761
                     ]
-
-                    // Nếu SERVICE được chỉ định, chỉ deploy service đó
-                    if (params.SERVICE) {
-                        services = [params.SERVICE]
-                    }
-
-                    def imageTag = params.COMMIT_ID ?: 'latest'
 
                     for (service in services) {
                         echo "Ensuring deployment and service for ${service} exist..."
@@ -80,7 +73,7 @@ pipeline {
 
                         // Kiểm tra và tạo Service nếu chưa tồn tại
                         sh """
-                        kubectl get service ${service} -n spring-petclinic || kubectl expose deployment ${service} --type=ClusterIP --port=8080 -n spring-petclinic
+                        kubectl get service ${service} -n spring-petclinic || kubectl expose deployment ${service} --type=ClusterIP --port=${servicePorts[service]} -n spring-petclinic
                         """
 
                         echo "Updating image for ${service} with tag ${imageTag}"
