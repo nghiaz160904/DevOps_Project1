@@ -16,6 +16,11 @@ pipeline {
         stage('Deploy Helm Charts') {
             steps {
                 script {
+                    echo "Cleaning up old resources..."
+                    sh """
+                    kubectl delete all --all -n spring-petclinic --ignore-not-found=true
+                    """
+
                     echo "Deploying ingress-nginx..."
                     sh """
                     helm upgrade --install ingress-nginx ingress-nginx \
