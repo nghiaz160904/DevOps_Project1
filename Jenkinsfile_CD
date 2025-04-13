@@ -87,7 +87,7 @@ pipeline {
 
                         // Update image for the service
                         sh """
-                        kubectl set image deployment/${service} spring-petclinic-${service}=${DOCKER_IMAGE}-${service}:${imageTag} -n spring-petclinic
+                        kubectl set image deployment/${service} ${service}=${DOCKER_IMAGE}-${service}:${imageTag} -n spring-petclinic
                         kubectl rollout restart deployment/${service} -n spring-petclinic
                         """
                     }
