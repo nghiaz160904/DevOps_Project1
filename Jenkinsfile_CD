@@ -62,7 +62,6 @@ pipeline {
                         'config-server',
                         'discovery-server'
                     ]
-                    
                     def servicePorts = [
                         'api-gateway': 8080,
                         'admin-server': 9090,
@@ -74,6 +73,14 @@ pipeline {
                         'discovery-server': 8761
                     ]
 
+                    // Kiểm tra và lấy tag của image
+                    def imageTag = params.COMMIT_ID ?: sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                    if (params.SERVICE) {
+                        echo "Deploying specific service: ${params.SERVICE}"
+                        services = [params.SERVICE]
+                    } else {
+                        echo "Deploying all services"
+                    }
                     for (service in services) {
                         echo "Ensuring deployment and service for ${service} exist..."
 
