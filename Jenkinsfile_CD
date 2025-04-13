@@ -52,6 +52,17 @@ pipeline {
                     """
 
                     // Danh sách các services trong ứng dụng Spring PetClinic
+                    def services = [
+                        'api-gateway',
+                        'admin-server',
+                        'customers-service',
+                        'vets-service',
+                        'visits-service',
+                        'genai-service',
+                        'config-server',
+                        'discovery-server'
+                    ]
+                    
                     def servicePorts = [
                         'api-gateway': 8080,
                         'admin-server': 9090,
