@@ -13,15 +13,25 @@ pipeline {
 
     stages {
 
-        stage('Deploy Helm Chart') {
+        stage('Deploy Helm Charts') {
             steps {
                 script {
-                    echo "Deploying Helm Chart for Spring PetClinic..."
+                    echo "Deploying ingress-nginx..."
                     sh """
-                   helm upgrade --install ingress-nginx ingress-nginx \
-                    --repo https://kubernetes.github.io/ingress-nginx \
-                    --namespace ingress-nginx --create-namespace \
-                    --set controller.service.type=LoadBalancer
+                    helm upgrade --install ingress-nginx ingress-nginx \
+                        --repo https://kubernetes.github.io/ingress-nginx \
+                        --namespace ingress-nginx --create-namespace \
+                        --set controller.service.type=LoadBalancer
+                    """
+
+                    echo "Deploying Spring PetClinic Helm Chart..."
+                    sh """
+                    helm upgrade --install spring-petclinic ./spring-petclinic \
+                        --namespace spring-petclinic --create-namespace \
+                        --set ingress.enabled=true \
+                        --set ingress.hosts[0].host=dev.spring-petclinic.com \
+                        --set ingress.hosts[0].paths[0].path="/" \
+                        --set ingress.hosts[0].paths[0].pathType=Prefix
                     """
                 }
             }
