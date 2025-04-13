@@ -30,6 +30,11 @@ pipeline {
         stage('Update Images') {
             steps {
                 script {
+                    // Tạo namespace nếu chưa tồn tại
+                    sh """
+                    kubectl get namespace spring-petclinic || kubectl create namespace spring-petclinic
+                    """
+
                     // Danh sách các services trong ứng dụng Spring PetClinic
                     def services = [
                         'api-gateway',
