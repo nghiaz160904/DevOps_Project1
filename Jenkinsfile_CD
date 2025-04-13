@@ -53,14 +53,14 @@ pipeline {
 
                     // Danh sách các services trong ứng dụng Spring PetClinic
                     def services = [
+                        'config-server', // Deploy config-server first
+                        'discovery-server',
                         'api-gateway',
                         'admin-server',
                         'customers-service',
                         'vets-service',
                         'visits-service',
-                        'genai-service',
-                        'config-server',
-                        'discovery-server'
+                        'genai-service'
                     ]
 
                     // Nếu SERVICE được chỉ định, chỉ deploy service đó
