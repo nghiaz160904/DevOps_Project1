@@ -55,6 +55,18 @@ pipeline {
                     def imageTag = params.COMMIT_ID ?: 'latest'
 
                     for (service in services) {
+                        echo "Ensuring deployment and service for ${service} exist..."
+
+                        // Kiểm tra và tạo Deployment nếu chưa tồn tại
+                        sh """
+                        kubectl get deployment ${service} -n spring-petclinic || kubectl create deployment ${service} --image=${DOCKER_IMAGE}-${service}:${imageTag} -n spring-petclinic
+                        """
+
+                        // Kiểm tra và tạo Service nếu chưa tồn tại
+                        sh """
+                        kubectl get service ${service} -n spring-petclinic || kubectl expose deployment ${service} --type=ClusterIP --port=8080 -n spring-petclinic
+                        """
+
                         echo "Updating image for ${service} with tag ${imageTag}"
 
                         // Update image for the service
