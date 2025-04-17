@@ -40,7 +40,7 @@ services:
     containerName: api-gateway
     image: nghiax1609/spring-petclinic-api-gateway
     tag: ""
-    port: 8080
+    port: 8000
     ingress:
       host: dev.spring-petclinic.com
   admin-server:
