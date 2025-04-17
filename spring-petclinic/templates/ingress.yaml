@@ -3,13 +3,10 @@ kind: Ingress
 metadata:
   name: spring-petclinic-ingress
   namespace: spring-petclinic
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
   ingressClassName: nginx
   rules:
-  - host: dev.spring-petclinic.com
+  - host: {{ .Values.services.api-gateway.ingress.host }}
     http:
       paths:
       - path: /
@@ -19,3 +16,4 @@ spec:
             name: api-gateway
             port:
               number: 8000
+

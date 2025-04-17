@@ -42,7 +42,8 @@ services:
     image: nghiax1609/spring-petclinic-api-gateway
     tag: ""
     port: 8080
-
+    ingress:
+      host: dev.spring-petclinic.com
   admin-server:
     containerName: admin-server
     image: nghiax1069/spring-petclinic-admin-server
