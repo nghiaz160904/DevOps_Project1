@@ -13,7 +13,7 @@ pipeline {
     }
     
     environment {
-        NAMESPACE = "spring-petclinic-{ env.BUILD_NUMBER }"
+        NAMESPACE = "spring-petclinic-${env.BUILD_NUMBER}"
         DOCKER_REGISTRY = 'nghiax1609/'
     }
     
