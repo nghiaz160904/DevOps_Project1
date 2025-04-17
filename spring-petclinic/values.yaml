@@ -45,7 +45,7 @@ services:
       host: dev.spring-petclinic.com
   admin-server:
     containerName: admin-server
-    image: nghiax1069/spring-petclinic-admin-server
+    image: nghiax1609/spring-petclinic-admin-server
     tag: ""
     port: 9090
 replicaCount: 1
