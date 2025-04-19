@@ -1,0 +1,35 @@
+pipeline {
+    agent any
+    environment {
+        IS_TAG = false
+        IMAGE_TAG = ''
+    }
+    stages {
+        stage('Detect Branch or Tag') {
+            steps {
+                script {
+                    def branch = env.BRANCH_NAME
+                    def tagPattern = /^v\d+\.\d+\.\d+$/
+                    def rcPattern = /^rc_v\d+\.\d+\.\d+$/
+
+                    echo "Detected branch or tag: ${branch}"
+
+                    if (branch ==~ tagPattern) {
+                        echo "This is a Git tag: ${branch}"
+                        env.IS_TAG = true
+                        env.IMAGE_TAG = branch
+                    } else if (branch ==~ rcPattern) {
+                        echo "This is a release candidate branch: ${branch}"
+                        env.IMAGE_TAG = branch.replaceFirst(/^rc_/, '')
+                    } else {
+                        echo "Not a release candidate or version tag. Skipping."
+                        currentBuild.result = 'ABORTED'
+                        return
+                    }
+                }
+            }
+        }
+
+        // Các stage khác như build & deploy...
+    }
+}
