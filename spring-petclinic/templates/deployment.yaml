@@ -18,11 +18,11 @@ spec:
     spec:
       containers:
         - name: {{ $config.containerName }}
-          image: {{ $config.image }}:{{ $config.tag }}
+          image: {{ $config.image }}{{ if $config.tag }}:{{ $config.tag }}{{ end }}
           imagePullPolicy: Always
           ports:
-            - containerPort: {{ $config.port }}
+            - containerPort: {{ or $config.targetPort $config.port }} # ← container thực sự chạy ở đây
           env:
             - name: EUREKA_INSTANCE_HOSTNAME
-              value: {{ $config.containerName }}
+              value: "{{ $config.containerName }}"
 {{- end }}

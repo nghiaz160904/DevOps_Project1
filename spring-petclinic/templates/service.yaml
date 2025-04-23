@@ -10,6 +10,6 @@ spec:
   type: ClusterIP
   ports:
     - protocol: TCP
-      port: {{ $config.port }}
-      targetPort: {{ $config.port }}
+      port: {{ $config.port }}                             # ← Service expose cổng này
+      targetPort: {{ or $config.targetPort $config.port }} # ← Pod thực sự lắng nghe ở đây
 {{- end }}
