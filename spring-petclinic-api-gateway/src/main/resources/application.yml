@@ -48,6 +48,3 @@ spring:
     activate:
       on-profile: docker
     import: configserver:http://config-server:8888
-server:
-  port: 8080
-  address: 0.0.0.0
