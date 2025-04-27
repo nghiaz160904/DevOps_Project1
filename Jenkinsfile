@@ -138,47 +138,47 @@ pipeline {
         }
 
 
-        stage('Build and Push All Service Images') {
-            agent { label 'built-in' }
-            steps {
-                script {
-                    def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                    def versionTag = "3.4.1"
+        // stage('Build and Push All Service Images') {
+        //     agent { label 'built-in' }
+        //     steps {
+        //         script {
+        //             def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+        //             def versionTag = "3.4.1"
 
-                    echo "Building all service images using: ./mvnw clean install -P buildDocker"
-                    sh './mvnw clean install -P buildDocker'
+        //             echo "Building all service images using: ./mvnw clean install -P buildDocker"
+        //             sh './mvnw clean install -P buildDocker'
 
-                    def services = [
-                        'admin-server',
-                        'api-gateway',
-                        'config-server',
-                        'customers-service',
-                        'discovery-server',
-                        'vets-service',
-                        'visits-service',
-                        'genai-service',
-                    ]
+        //             def services = [
+        //                 'admin-server',
+        //                 'api-gateway',
+        //                 'config-server',
+        //                 'customers-service',
+        //                 'discovery-server',
+        //                 'vets-service',
+        //                 'visits-service',
+        //                 'genai-service',
+        //             ]
 
-                    sh 'docker images'
-                    echo "Docker images before tagging and pushing: ${services}"
+        //             sh 'docker images'
+        //             echo "Docker images before tagging and pushing: ${services}"
 
-                    sh "echo ${DOCKER_HUB_CREDS_PSW} | docker login -u ${DOCKER_HUB_CREDS_USR} --password-stdin"
+        //             sh "echo ${DOCKER_HUB_CREDS_PSW} | docker login -u ${DOCKER_HUB_CREDS_USR} --password-stdin"
 
-                    for (svc in services) {
-                        def image = "${DOCKER_IMAGE}-${svc}"
-                        echo "Pushing image: ${image}:${commitId}"
-                        sh """
-                            docker tag ${image} ${image}:${commitId}
-                            docker push ${image}:${commitId}
+        //             for (svc in services) {
+        //                 def image = "${DOCKER_IMAGE}-${svc}"
+        //                 echo "Pushing image: ${image}:${commitId}"
+        //                 sh """
+        //                     docker tag ${image} ${image}:${commitId}
+        //                     docker push ${image}:${commitId}
 
-                            docker tag ${image} ${image}:latest
-                            docker push ${image}:latest
-                        """
-                    }
-                    echo "All images successfully built and pushed."
-                }
-            }
-        }
+        //                     docker tag ${image} ${image}:latest
+        //                     docker push ${image}:latest
+        //                 """
+        //             }
+        //             echo "All images successfully built and pushed."
+        //         }
+        //     }
+        // }
 
         stage('Build and Push Changed Services') {
             agent { label 'built-in' }
