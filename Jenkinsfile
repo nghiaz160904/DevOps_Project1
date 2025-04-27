@@ -1,8 +1,8 @@
 pipeline {
     agent none  // Không chạy trên Master, chỉ điều phối
-
     environment {
-        DOCKER_HUB_CREDS = credentials('docker-hub-cre')
+        OTHER = ''
+        DOCKER_HUB = credentials('docker-hub-cred')
         DOCKER_IMAGE = "nghiax1609/"
     }
 
@@ -20,16 +20,8 @@ pipeline {
                         changedFiles = sh(script: "git diff --name-only HEAD^", returnStdout: true).trim().split('\n').toList()
                     }
 
-                    def services = [
-                        'spring-petclinic-customers-service',
-                        'spring-petclinic-visits-service',
-                        'spring-petclinic-vets-service',
-                        'spring-petclinic-admin-server',
-                        'spring-petclinic-api-gateway',
-                        'spring-petclinic-config-server',
-                        'spring-petclinic-discovery-server',
-                        'spring-petclinic-genai-service'
-                    ]
+                    def services = ['spring-petclinic-customers-service', 'spring-petclinic-visits-service', 'spring-petclinic-vets-service']
+                    
                     echo "Changed files: ${changedFiles}"
 
                     if (changedFiles.isEmpty() || changedFiles[0] == '') {
@@ -112,6 +104,7 @@ pipeline {
                     def services = env.SERVICE_CHANGED.split(',')
                     def failedCoverageServices = []
 
+                    // unstash artifacts từ các agents khác
                     for (service in services) {
                         unstash "${service}-coverage"
                     }
@@ -137,50 +130,7 @@ pipeline {
             }
         }
 
-
-        stage('Build and Push All Service Images') {
-            agent { label 'built-in' }
-            steps {
-                script {
-                    def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                    def versionTag = "3.4.1"
-
-                    echo "Building all service images using: ./mvnw clean install -P buildDocker"
-                    sh './mvnw clean install -P buildDocker'
-
-                    def services = [
-                        'admin-server',
-                        'api-gateway',
-                        'config-server',
-                        'customers-service',
-                        'discovery-server',
-                        'vets-service',
-                        'visits-service',
-                        'genai-service',
-                    ]
-
-                    sh 'docker images'
-                    echo "Docker images before tagging and pushing: ${services}"
-
-                    sh "echo ${DOCKER_HUB_CREDS_PSW} | docker login -u ${DOCKER_HUB_CREDS_USR} --password-stdin"
-
-                    for (svc in services) {
-                        def image = "${DOCKER_IMAGE}-${svc}"
-                        echo "Pushing image: ${image}:${commitId}"
-                        sh """
-                            docker tag ${image} ${image}:${commitId}
-                            docker push ${image}:${commitId}
-
-                            docker tag ${image} ${image}:latest
-                            docker push ${image}:latest
-                        """
-                    }
-                    echo "All images successfully built and pushed."
-                }
-            }
-        }
-
-        stage('Build and Push Changed Services') {
+        stage('Build and Push Image') {
             agent { label 'built-in' }
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' }
@@ -199,7 +149,7 @@ pipeline {
                         sh "./mvnw clean install -pl ${svc} -am -P buildDocker"
                     }
 
-                    sh "echo ${DOCKER_HUB_CREDS_PSW} | docker login -u ${DOCKER_HUB_CREDS_USR} --password-stdin"
+                    sh "echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --password-stdin"
 
                     for (svc in services) {
                         def image = "${DOCKER_IMAGE}${svc}"
@@ -223,22 +173,15 @@ pipeline {
                 }
             }
         }
-
-
-
     }
+
+    
     post {
         success {
-            script {
-                currentBuild.description = "Built image: ${DOCKER_IMAGE}:${env.BUILD_IMAGE_TAG ?: 'N/A'}"
-                echo "Pipeline completed successfully"
-            }
+            echo "Success"
         }
         failure {
-            echo "Pipeline failed - Check logs for details"
-        }
-        aborted {
-            echo "Pipeline was aborted - No changes detected"
+            echo "Fail"
         }
     }
 }
