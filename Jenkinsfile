@@ -2,13 +2,10 @@ pipeline {
     agent none  // Không chạy trên Master, chỉ điều phối
 
     environment {
-        OTHER = ''
-        DOCKER_HUB = credentials('docker-hub-cred')
-        DOCKER_HUB_USR = "${DOCKER_HUB_USR}"
-        DOCKER_HUB_PSW = "${DOCKER_HUB_PSW}"
-        APP_NAME = 'spring-petclinic-microservices'
-        DOCKER_IMAGE = "nghiax1609/spring-petclinic-microservices"
+        DOCKER_HUB_CREDS = credentials('docker-hub-cre')
+        DOCKER_IMAGE = "nghiax1609/"
     }
+
     stages {
         stage('Check Changes') {
             agent { label 'built-in' } // Chạy trên Master
@@ -23,8 +20,16 @@ pipeline {
                         changedFiles = sh(script: "git diff --name-only HEAD^", returnStdout: true).trim().split('\n').toList()
                     }
 
-                    def services = ['spring-petclinic-customers-service', 'spring-petclinic-visits-service', 'spring-petclinic-vets-service']
-                    
+                    def services = [
+                        'spring-petclinic-customers-service',
+                        'spring-petclinic-visits-service',
+                        'spring-petclinic-vets-service',
+                        'spring-petclinic-admin-server',
+                        'spring-petclinic-api-gateway',
+                        'spring-petclinic-config-server',
+                        'spring-petclinic-discovery-server',
+                        'spring-petclinic-genai-service'
+                    ]
                     echo "Changed files: ${changedFiles}"
 
                     if (changedFiles.isEmpty() || changedFiles[0] == '') {
@@ -107,7 +112,6 @@ pipeline {
                     def services = env.SERVICE_CHANGED.split(',')
                     def failedCoverageServices = []
 
-                    // unstash artifacts từ các agents khác
                     for (service in services) {
                         unstash "${service}-coverage"
                     }
@@ -133,39 +137,95 @@ pipeline {
             }
         }
 
-        stage('Build and Push Image') {
-            agent { label 'built-in' } // Agent có cài đặt Docker
+
+        stage('Build and Push All Service Images') {
+            agent { label 'built-in' }
+            steps {
+                script {
+                    def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                    def versionTag = "3.4.1"
+
+                    echo "Building all service images using: ./mvnw clean install -P buildDocker"
+                    sh './mvnw clean install -P buildDocker'
+
+                    def services = [
+                        'admin-server',
+                        'api-gateway',
+                        'config-server',
+                        'customers-service',
+                        'discovery-server',
+                        'vets-service',
+                        'visits-service',
+                        'genai-service',
+                    ]
+
+                    sh 'docker images'
+                    echo "Docker images before tagging and pushing: ${services}"
+
+                    sh "echo ${DOCKER_HUB_CREDS_PSW} | docker login -u ${DOCKER_HUB_CREDS_USR} --password-stdin"
+
+                    for (svc in services) {
+                        def image = "${DOCKER_IMAGE}-${svc}"
+                        echo "Pushing image: ${image}:${commitId}"
+                        sh """
+                            docker tag ${image} ${image}:${commitId}
+                            docker push ${image}:${commitId}
+
+                            docker tag ${image} ${image}:latest
+                            docker push ${image}:latest
+                        """
+                    }
+                    echo "All images successfully built and pushed."
+                }
+            }
+        }
+
+        stage('Build and Push Changed Services') {
+            agent { label 'built-in' }
             when {
                 expression { env.NO_SERVICES_TO_BUILD == 'false' }
             }
             steps {
                 script {
                     def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                    def branch = env.GIT_BRANCH.replace('origin/', '')
+                    def branchName = env.BRANCH_NAME ?: sh(script: "git rev-parse --abbrev-ref HEAD", returnStdout: true).trim()
+                    def services = env.SERVICE_CHANGED.split(',')
 
-                    // Đăng nhập Docker Hub
-                    withCredentials([usernamePassword(credentialsId: 'docker-hub-cred', usernameVariable: 'DOCKER_HUB_USR', passwordVariable: 'DOCKER_HUB_PSW')]) {
-                        sh "echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --password-stdin"
+                    echo "Building only changed services: ${services.join(', ')}"
+                    echo "Current branch: ${branchName}"
+
+                    for (svc in services) {
+                        echo "Building Docker image for ${svc}"
+                        sh "./mvnw clean install -pl ${svc} -am -P buildDocker"
                     }
 
-                    def services = env.SERVICE_CHANGED.split(',')
-                    for (service in services) {
-                        echo "Building Docker image for service: ${service}"
-                        dir(service) {
-                            sh "../mvnw clean install -P buildDocker"
-                        }
+                    sh "echo ${DOCKER_HUB_CREDS_PSW} | docker login -u ${DOCKER_HUB_CREDS_USR} --password-stdin"
 
-                        echo "Tagging and pushing Docker image for service: ${service}"
-                        sh "docker tag ${DOCKER_HUB_USR}/${service}:latest ${DOCKER_HUB_USR}/${service}:${commitId}"
-                        sh "docker push ${DOCKER_HUB_USR}/${service}:${commitId}"
+                    for (svc in services) {
+                        def image = "${DOCKER_IMAGE}${svc}"
+                        echo "Pushing image: ${image}:${commitId}"
 
-                        if (branch == 'main') {
-                            sh "docker push ${DOCKER_HUB_USR}/${service}:latest"
+                        sh """
+                            docker tag ${image} ${image}:${commitId}
+                            docker push ${image}:${commitId}
+                        """
+
+                        if (branchName == "main") {
+                            echo "Also tagging and pushing latest for ${image}"
+                            sh """
+                                docker tag ${image} ${image}:latest
+                                docker push ${image}:latest
+                            """
+                        } else {
+                            echo "Skipping latest tag for non-main branch (${branchName})"
                         }
                     }
                 }
             }
         }
+
+
+
     }
     post {
         success {
